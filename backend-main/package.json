@@ -1,0 +1,27 @@
+{
+  "name": "smart-travel-backend",
+  "version": "1.0.0",
+  "description": "REST API for Smart Travel - trip planning, itineraries and budgets",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed": "node seed/seed.js",
+    "seed:destroy": "node seed/seed.js --destroy"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.8.0",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}

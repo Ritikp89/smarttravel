@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans;
+    background-image: radial-gradient(rgba(34, 31, 27, 0.045) 0.6px, transparent 0.6px);
+    background-size: 22px 22px;
+  }
+
+  h1, h2, h3 {
+    @apply font-display;
+    font-variation-settings: 'opsz' 144;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    @apply bg-clay-200 text-ink;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium
+      transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-clay-400 focus-visible:ring-offset-2 focus-visible:ring-offset-paper;
+  }
+  .btn-primary {
+    @apply btn bg-ink text-paper hover:bg-clay-600 active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply btn bg-cream text-ink border border-sand hover:border-ink/40 hover:bg-white;
+  }
+  .btn-ghost {
+    @apply btn text-soot hover:text-ink hover:bg-cream;
+  }
+  .btn-danger {
+    @apply btn text-clay-600 hover:bg-clay-50;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-sand bg-white/80 px-3.5 py-2.5 text-sm text-ink placeholder:text-stone
+      transition focus:border-clay-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-clay-100;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soot;
+  }
+
+  .card {
+    @apply rounded-2xl border border-sand/70 bg-white/70 shadow-soft backdrop-blur-sm;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition;
+  }
+  .chip-idle {
+    @apply chip border-sand bg-white/60 text-soot hover:border-ink/30 hover:text-ink;
+  }
+  .chip-on {
+    @apply chip border-ink bg-ink text-paper;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-clay-500;
+  }
+
+  /* the handwritten-note look used for tips */
+  .note {
+    @apply relative rounded-xl border border-butter/70 bg-[#fdf7e3] px-4 py-3 text-sm text-soot;
+  }
+  .note::before {
+    content: '';
+    @apply absolute -top-2 left-6 h-4 w-10 rotate-[-3deg] rounded-sm bg-butter/70;
+  }
+}
+
+/* thin, quiet scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d9cfbd transparent;
+}
