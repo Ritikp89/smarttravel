@@ -107,7 +107,4 @@ Backend (`backend-main/.env`):
 
 Frontend (`frontend-main/.env`): `VITE_API_URL` — leave empty to use the dev proxy.
 
-## Notes
 
-- Costs in the seed data are rough per-person USD figures meant for estimates, not bookings.
-- The itinerary algorithm is deterministic: the same trip settings always give the same plan, so "Regenerate" is mostly useful after changing pace, dates or interests.
