@@ -1,5 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Budget = require('../models/Budget');
+const { normalizeCurrency, convertAmount } = require('../services/currencyService');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const signToken = (id) =>
@@ -47,7 +49,27 @@ const updateMe = asyncHandler(async (req, res) => {
 
   if (name !== undefined) user.name = name;
   if (preferences) {
+    const previousCurrency = user.preferences?.currency || 'USD';
     user.preferences = { ...user.preferences.toObject(), ...preferences };
+    const selectedCurrency = user.preferences.currency || 'USD';
+    if (selectedCurrency !== previousCurrency) {
+      const budgets = await Budget.find({ user: user._id });
+      for (const budget of budgets) {
+        const fromCurrency = normalizeCurrency(budget.currency);
+        const toCurrency = normalizeCurrency(selectedCurrency);
+        budget.lines.forEach((line) => {
+          line.amount = convertAmount(line.amount, fromCurrency, toCurrency);
+        });
+        if (budget.limit != null) {
+          budget.limit = convertAmount(budget.limit, fromCurrency, toCurrency);
+        }
+        budget.total = convertAmount(budget.total, fromCurrency, toCurrency);
+        budget.perPerson = convertAmount(budget.perPerson, fromCurrency, toCurrency);
+        budget.perDay = convertAmount(budget.perDay, fromCurrency, toCurrency);
+        budget.currency = toCurrency;
+      }
+      await Promise.all(budgets.map((budget) => budget.save()));
+    }
   }
 
   if (password) {
