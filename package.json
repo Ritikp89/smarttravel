@@ -5,10 +5,10 @@
   "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "seed": "node seed/seed.js",
-    "seed:destroy": "node seed/seed.js --destroy"
+    "start": "cd backend-main && node index.js",
+    "dev": "cd backend-main && nodemon index.js",
+    "seed": "cd backend-main && node seed/seed.js",
+    "seed:destroy": "cd backend-main && node seed/seed.js --destroy"
   },
   "license": "MIT",
   "dependencies": {
@@ -23,6 +23,9 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }
 
