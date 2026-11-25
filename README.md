@@ -11,6 +11,7 @@ A MERN travel-planning app. Tell it how you like to travel and it recommends des
 - **Itinerary generation** — a greedy day-packer that respects pace (relaxed / balanced / packed), time-of-day windows (sunset spots go in the evening), travel time between stops, and variety (max one museum a day, lunch around midday, full-day excursions get a day to themselves). Days are editable: reorder, remove, or pull in anything that didn't make the cut.
 - **Budget estimation** — category-based summation (accommodation, food, activities, transport, flights, misc) with a contingency buffer, per-person and per-day figures, an optional spending ceiling, and manual overrides that survive re-estimates.
 - **Trip analysis** — `GET /api/trips/:id/analysis` rolls up itinerary balance, budget shape and a forecast for your dates.
+- **Trip group chat** — invite existing travelers by email, share messages in a separate trip chatbox, and poll for new messages.
 - **Weather & maps** — live forecasts from [Open-Meteo](https://open-meteo.com) (no key needed), travel-time estimates from coordinates, optional Google Directions if you add a key.
 
 ## Getting started
@@ -47,7 +48,7 @@ backend-main/
   config/db.js               Mongo connection
   controllers/               auth, destination, trip, itinerary, budget, external
   middleware/                JWT auth (protect / optionalAuth), error handling
-  models/                    User, Destination, Activity, Trip, Itinerary, Budget
+  models/                    User, Destination, Activity, Trip, ChatMessage, Itinerary, Budget
   routes/                    one router per resource; itinerary + budget nest under /trips/:id
   services/
     itineraryService.js      greedy day-packing algorithm
@@ -87,6 +88,9 @@ frontend-main/src/
 | GET | `/api/trips/:id/analysis` | ✓ | |
 | GET/POST/DELETE | `/api/trips/:id/itinerary` | ✓ | POST (re)generates; accepts `pace`, `interests`, `budgetLevel` overrides |
 | PUT | `/api/trips/:id/itinerary/days/:dayNumber` | ✓ | replace a day's slots; times are recomputed |
+| GET | `/api/chat/rooms` | ✓ | Lists trip chats the user owns or has joined |
+| GET/POST | `/api/chat/rooms/:tripId/messages` | ✓ | Reads recent messages or sends a message to a trip group |
+| POST | `/api/chat/rooms/:tripId/members` | ✓ | Trip owner adds an existing account by email |
 | GET/POST/PUT | `/api/trips/:id/budget` | ✓ | POST estimates, PUT edits lines / limit |
 | POST | `/api/trips/:id/budget/lines/:category/reset` | ✓ | drop a manual override |
 | GET | `/api/external/weather` | – | `lat`, `lng`, `days` |
