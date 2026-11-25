@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Cloud, CloudDrizzle, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
 import { externalApi } from '../../services/api'
+import { useLanguage } from '../../context/LanguageContext'
+import { formatDate } from '../ui'
 
 const ICONS = {
   sun: Sun,
@@ -21,6 +23,7 @@ export function WeatherIcon({ icon, size = 18, className }) {
 
 // Standalone forecast card - fetches its own data from our weather proxy.
 export default function WeatherWidget({ coords, days = 7, title = 'Weather' }) {
+  const { t } = useLanguage()
   const [state, setState] = useState({ loading: true })
 
   useEffect(() => {
@@ -34,15 +37,16 @@ export default function WeatherWidget({ coords, days = 7, title = 'Weather' }) {
 
   return (
     <div className="card p-5">
-      <p className="eyebrow mb-3">{title}</p>
-      {state.loading && <p className="text-sm text-stone animate-pulse">Checking the skies…</p>}
-      {state.error && <p className="text-sm text-stone">Forecast unavailable right now.</p>}
+      <p className="eyebrow mb-3">{t(title)}</p>
+      {state.loading && <p className="text-sm text-stone animate-pulse">{t('Checking the skies…')}</p>}
+      {state.error && <p className="text-sm text-stone">{t('Forecast unavailable right now.')}</p>}
       {state.data && <ForecastStrip forecast={state.data.forecast} hint={state.data.hint} />}
     </div>
   )
 }
 
 export function ForecastStrip({ forecast, hint, daily }) {
+  const { locale, t } = useLanguage()
   const list = daily || forecast?.daily || []
   return (
     <div>
@@ -51,21 +55,21 @@ export function ForecastStrip({ forecast, hint, daily }) {
           <WeatherIcon icon={forecast.current.icon} size={32} className="text-clay-500" />
           <div>
             <p className="font-display text-3xl font-semibold leading-none">{forecast.current.temp}°</p>
-            <p className="text-xs text-soot">{forecast.current.label} · now</p>
+            <p className="text-xs text-soot">{t(forecast.current.label)} · {t('now')}</p>
           </div>
         </div>
       )}
       <div className="grid grid-cols-7 gap-1 text-center">
         {list.slice(0, 7).map((d) => (
           <div key={d.date} className="rounded-lg bg-cream/60 px-1 py-2">
-            <p className="text-[10px] uppercase text-stone">{format(parseISO(d.date), 'EEE')}</p>
+            <p className="text-[10px] uppercase text-stone">{formatDate(parseISO(d.date), 'EEE', locale)}</p>
             <WeatherIcon icon={d.icon} size={16} className="mx-auto my-1 text-soot" />
             <p className="text-xs font-semibold">{d.high}°</p>
             <p className="text-[10px] text-stone">{d.low}°</p>
           </div>
         ))}
       </div>
-      {hint && <p className="mt-3 text-xs italic text-soot">{hint}</p>}
+      {hint && <p className="mt-3 text-xs italic text-soot">{t(hint)}</p>}
     </div>
   )
 }

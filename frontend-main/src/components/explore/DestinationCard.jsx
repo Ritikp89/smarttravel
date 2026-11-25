@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom'
 import { Heart, Share2, Star, Trash2 } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import { money } from '../ui'
 import { getDestinationFallback, getDestinationImage } from '../../services/travelImages'
 import { convertCurrency, normalizeCurrency } from '../../services/currency'
 
 export default function DestinationCard({ destination: d, budgetLevel, onDelete }) {
   const { isAuthed, isSaved, toggleSaved, user } = useAuth()
+  const { t, locale } = useLanguage()
   const level = budgetLevel || user?.preferences?.budgetLevel || 'mid'
   const saved = isSaved(d._id)
   const match = d.recommendation?.score
@@ -41,10 +43,10 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
         await navigator.share(shareData)
       } else {
         await navigator.clipboard.writeText(url)
-        window.alert('Destination link copied')
+        window.alert(t('Destination link copied'))
       }
     } catch (error) {
-      if (error?.name !== 'AbortError') window.alert('Could not share this destination')
+      if (error?.name !== 'AbortError') window.alert(t('Could not share this destination'))
     }
   }
 
@@ -76,8 +78,8 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
             <button
               type="button"
               onClick={onShare}
-              aria-label={`Share ${d.name}`}
-              title="Share destination"
+              aria-label={t('Share {name}', { name: d.name })}
+              title={t('Share destination')}
               className="grid h-8 w-8 place-items-center rounded-full bg-paper/70 text-ink backdrop-blur transition hover:bg-paper"
             >
               <Share2 size={15} />
@@ -88,10 +90,10 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
                 onClick={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
-                  if (window.confirm(`Delete ${d.name} and its trips?`)) onDelete?.(d)
+                  if (window.confirm(t('Delete {name} and its trips?', { name: d.name }))) onDelete?.(d)
                 }}
-                aria-label={`Delete ${d.name}`}
-                title="Delete destination"
+                aria-label={t('Delete {name}', { name: d.name })}
+                title={t('Delete destination')}
                 className="grid h-8 w-8 place-items-center rounded-full bg-clay-600 text-paper backdrop-blur transition hover:bg-clay-700"
               >
                 <Trash2 size={15} />
@@ -99,7 +101,7 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
             )}
             <button
               onClick={onSave}
-              aria-label={saved ? 'Remove from saved' : 'Save destination'}
+              aria-label={t(saved ? 'Remove from saved' : 'Save destination')}
               className={clsx(
                 'grid h-8 w-8 place-items-center rounded-full backdrop-blur transition',
                 saved ? 'bg-clay-500 text-paper' : 'bg-paper/70 text-ink hover:bg-paper'
@@ -111,7 +113,7 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
         )}
         {match != null && (
           <span className="absolute left-3 top-3 rounded-full bg-paper/90 px-2 py-0.5 text-xs font-semibold text-ink">
-            {match}% match
+            {match}% {t('match')}
           </span>
         )}
       </div>
@@ -120,16 +122,16 @@ export default function DestinationCard({ destination: d, budgetLevel, onDelete 
         <p className="text-sm text-soot">{d.tagline}</p>
         <div className="mt-3 flex items-center justify-between text-xs">
           <div className="flex flex-wrap gap-1">
-            {d.tags?.slice(0, 3).map((t) => (
-              <span key={t} className="rounded-full bg-cream px-2 py-0.5 text-soot">{t}</span>
+            {d.tags?.slice(0, 3).map((tag) => (
+              <span key={tag} className="rounded-full bg-cream px-2 py-0.5 text-soot">{t(tag)}</span>
             ))}
           </div>
           <span className="shrink-0 text-stone">
-            ~{money(convertCurrency(d.dailyCost?.[level], currency), currency)}<span className="opacity-70">/day</span>
+            ~{money(convertCurrency(d.dailyCost?.[level], currency), currency, locale)}<span className="opacity-70">{t('/day')}</span>
           </span>
         </div>
         {d.recommendation?.reasons?.[0] && (
-          <p className="mt-3 text-xs italic text-moss-600">{d.recommendation.reasons[0]}</p>
+          <p className="mt-3 text-xs italic text-moss-600">{t(d.recommendation.reasons[0])}</p>
         )}
       </div>
     </Link>

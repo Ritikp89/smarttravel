@@ -4,18 +4,26 @@ import { Bot, Send, Trash2, X } from 'lucide-react'
 import clsx from 'clsx'
 import { destinationApi, tripApi } from '../services/api'
 import { useAuth } from '../context/authContext'
+import { useLanguage } from '../context/LanguageContext'
 
 const STARTERS = ['Where should I travel?', 'Show my upcoming trips', 'Find a beach destination', 'Plan a budget trip']
 
 export default function Chatbot() {
   const { isAuthed } = useAuth()
+  const { language, t } = useLanguage()
   const [open, setOpen] = useState(false)
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [messages, setMessages] = useState([
-    { role: 'assistant', text: 'Hi! Ask me about destinations, trip ideas, budgets, or your saved trips.' },
+    { role: 'assistant', text: t('Hi! Ask me about destinations, trip ideas, budgets, or your saved trips.') },
   ])
   const endRef = useRef(null)
+
+  useEffect(() => {
+    setMessages((current) => current.length === 1 && current[0].role === 'assistant'
+      ? [{ ...current[0], text: t('Hi! Ask me about destinations, trip ideas, budgets, or your saved trips.') }]
+      : current)
+  }, [language, t])
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -34,45 +42,61 @@ export default function Chatbot() {
     try {
       const lower = text.toLowerCase()
 
-      if (isAuthed && /(my trip|my trips|upcoming|planned trip)/.test(lower)) {
+      if (isAuthed && /(my trip|my trips|upcoming|planned trip|मेरी यात्र|आने वाली यात्र)/.test(lower)) {
         const trips = await tripApi.list()
         if (!trips.length) {
-          addMessage({ role: 'assistant', text: 'You have no trips yet.', action: { to: '/trips/new', label: 'Plan your first trip' } })
+          addMessage({ role: 'assistant', text: t('You have no trips yet.'), action: { to: '/trips/new', label: t('Plan your first trip') } })
         } else {
           addMessage({
             role: 'assistant',
-            text: `You have ${trips.length} trip${trips.length === 1 ? '' : 's'}. ${trips.slice(0, 3).map((trip) => `${trip.title || trip.destination?.name} — ${trip.destination?.name || 'Custom place'}`).join('; ')}.`,
-            action: { to: '/trips', label: 'View my trips' },
+            text: t(trips.length === 1 ? 'You have {count} trip: {trips}.' : 'You have {count} trips: {trips}.', {
+              count: trips.length,
+              trips: trips.slice(0, 3).map((trip) => `${trip.title || trip.destination?.name} — ${trip.destination?.name || t('Custom place')}`).join('; '),
+            }),
+            action: { to: '/trips', label: t('View my trips') },
           })
         }
-      } else if (/(budget|cheap|affordable|low cost)/.test(lower)) {
+      } else if (/(budget|cheap|affordable|low cost|बजट|सस्ता|कम खर्च)/.test(lower)) {
         const { destinations } = await destinationApi.list({ sort: 'cheapest', limit: 5, budgetLevel: 'budget' })
         addMessage({
           role: 'assistant',
-          text: `Here are affordable ideas: ${destinations.map((d) => `${d.name}, ${d.country}`).join('; ')}.`,
-          action: { to: '/explore?sort=cheapest', label: 'Explore budget destinations' },
+          text: t('Here are affordable ideas: {destinations}.', { destinations: destinations.map((d) => `${d.name}, ${d.country}`).join('; ') }),
+          action: { to: '/explore?sort=cheapest', label: t('Explore budget destinations') },
         })
       } else {
         let search = ''
-        for (const word of ['beach', 'food', 'culture', 'nature', 'temples', 'nightlife', 'adventure', 'art', 'history', 'wellness', 'wine']) {
-          if (lower.includes(word)) {
-            search = word
+        const searchTerms = [
+          ['beach', ['beach', 'समुद्र तट', 'समुद्र']],
+          ['food', ['food', 'खाना', 'भोजन']],
+          ['culture', ['culture', 'संस्कृति']],
+          ['nature', ['nature', 'प्रकृति']],
+          ['temples', ['temples', 'मंदिर']],
+          ['nightlife', ['nightlife', 'रात्रि जीवन']],
+          ['adventure', ['adventure', 'रोमांच']],
+          ['art', ['art', 'कला']],
+          ['history', ['history', 'इतिहास']],
+          ['wellness', ['wellness', 'स्वास्थ्य']],
+          ['wine', ['wine', 'वाइन']],
+        ]
+        for (const [term, aliases] of searchTerms) {
+          if (aliases.some((word) => lower.includes(word))) {
+            search = term
             break
           }
         }
         const { destinations } = await destinationApi.list(search ? { q: search, limit: 5 } : { sort: 'popular', limit: 5 })
         if (!destinations.length) {
-          addMessage({ role: 'assistant', text: 'I could not find a matching destination. Try a city, country, or interest like beach or food.' })
+          addMessage({ role: 'assistant', text: t('I could not find a matching destination. Try a city, country, or interest like beach or food.') })
         } else {
           addMessage({
             role: 'assistant',
-            text: `You might like ${destinations.slice(0, 5).map((d) => `${d.name}, ${d.country}`).join('; ')}.`,
-            action: { to: search ? `/explore?q=${encodeURIComponent(search)}` : '/explore', label: 'Browse destinations' },
+            text: t('You might like {destinations}.', { destinations: destinations.slice(0, 5).map((d) => `${d.name}, ${d.country}`).join('; ') }),
+            action: { to: search ? `/explore?q=${encodeURIComponent(search)}` : '/explore', label: t('Browse destinations') },
           })
         }
       }
     } catch (error) {
-      addMessage({ role: 'assistant', text: error.message || 'I could not complete that query. Please try again.' })
+      addMessage({ role: 'assistant', text: t(error.message || 'I could not complete that query. Please try again.') })
     } finally {
       setBusy(false)
     }
@@ -86,20 +110,20 @@ export default function Chatbot() {
             <div className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-clay-500"><Bot size={17} /></span>
               <div>
-                <p className="text-sm font-semibold">Smart Travel Assistant</p>
-                <p className="text-[11px] text-paper/70">{busy ? 'Finding an answer…' : 'Ready to help'}</p>
+                <p className="text-sm font-semibold">{t('Smart Travel Assistant')}</p>
+                <p className="text-[11px] text-paper/70">{busy ? t('Finding an answer…') : t('Ready to help')}</p>
               </div>
             </div>
             <div className="flex gap-1">
               <button
                 type="button"
-                onClick={() => setMessages([messages[0]])}
+                onClick={() => setMessages([{ role: 'assistant', text: t('Hi! Ask me about destinations, trip ideas, budgets, or your saved trips.') }])}
                 className="grid h-8 w-8 place-items-center rounded-full text-paper/80 hover:bg-white/10"
-                aria-label="Clear chat"
+                aria-label={t('Clear chat')}
               >
                 <Trash2 size={15} />
               </button>
-              <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-paper/80 hover:bg-white/10" aria-label="Close chat">
+              <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-paper/80 hover:bg-white/10" aria-label={t('Close chat')}>
                 <X size={18} />
               </button>
             </div>
@@ -112,11 +136,11 @@ export default function Chatbot() {
                   'rounded-2xl px-3.5 py-2.5 text-sm',
                   message.role === 'user' ? 'rounded-br-md bg-ink text-paper' : 'rounded-bl-md border border-sand bg-white/80 text-ink'
                 )}>
-                  {message.text}
+                  {message.role === 'assistant' ? t(message.text) : message.text}
                 </div>
                 {message.action && (
                   <Link to={message.action.to} onClick={() => setOpen(false)} className="mt-2 inline-block text-xs font-semibold text-clay-600 hover:underline">
-                    {message.action.label} →
+                    {t(message.action.label)} →
                   </Link>
                 )}
               </div>
@@ -124,8 +148,8 @@ export default function Chatbot() {
             {messages.length === 1 && (
               <div className="flex flex-wrap gap-2">
                 {STARTERS.map((starter) => (
-                  <button key={starter} type="button" onClick={() => answer(starter)} className="chip-idle" disabled={busy}>
-                    {starter}
+                  <button key={starter} type="button" onClick={() => answer(t(starter))} className="chip-idle" disabled={busy}>
+                    {t(starter)}
                   </button>
                 ))}
               </div>
@@ -144,18 +168,18 @@ export default function Chatbot() {
               className="input !py-2"
               value={input}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask a travel question…"
+              placeholder={t('Ask a travel question…')}
               disabled={busy}
-              aria-label="Chat message"
+              aria-label={t('Chat message')}
             />
-            <button type="submit" className="btn-primary !px-3" disabled={busy || !input.trim()} aria-label="Send message">
+            <button type="submit" className="btn-primary !px-3" disabled={busy || !input.trim()} aria-label={t('Send message')}>
               <Send size={16} />
             </button>
           </form>
         </section>
       ) : (
-        <button type="button" onClick={() => setOpen(true)} className="flex h-14 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-paper shadow-lift transition hover:-translate-y-0.5" aria-label="Open travel assistant">
-          <Bot size={20} /> <span className="hidden sm:inline">Ask Smart Travel</span>
+        <button type="button" onClick={() => setOpen(true)} className="flex h-14 items-center gap-2 rounded-full bg-ink px-4 text-sm font-semibold text-paper shadow-lift transition hover:-translate-y-0.5" aria-label={t('Open travel assistant')}>
+          <Bot size={20} /> <span className="hidden sm:inline">{t('Ask Smart Travel')}</span>
         </button>
       )}
     </div>

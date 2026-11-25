@@ -9,6 +9,41 @@ const SPLIT = {
 };
 
 const round5 = (n) => Math.round(n / 5) * 5;
+const isFixedLine = (line) =>
+  line.source !== 'estimated' ||
+  (line.category === 'activities' && /\bplanned activities$/.test(line.label || ''));
+
+const fitBudgetToLimit = (lines, limit, contingencyPct = 10) => {
+  if (limit == null) return lines;
+
+  const ceiling = Number(limit);
+  const contingencyRate = Number(contingencyPct);
+  if (!Number.isFinite(ceiling) || ceiling < 0) throw new RangeError('Budget ceiling must be a non-negative number');
+  if (!Number.isFinite(contingencyRate) || contingencyRate < 0 || contingencyRate > 100) {
+    throw new RangeError('Contingency must be between 0 and 100 percent');
+  }
+
+  const multiplier = 1 + contingencyRate / 100;
+  const subtotal = lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  if (Math.round(subtotal * multiplier) <= ceiling) return lines;
+
+  const ceilingSubtotal = Math.floor((Math.floor(ceiling) / multiplier) * 100 + 1e-7) / 100;
+  const fixedSubtotal = lines
+    .filter(isFixedLine)
+    .reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  const adjustableSubtotal = lines
+    .filter((line) => !isFixedLine(line))
+    .reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+  if (adjustableSubtotal <= 0) return lines;
+
+  const available = Math.max(0, Math.floor((ceilingSubtotal - fixedSubtotal) * 100 + 1e-7) / 100);
+  const scale = Math.min(1, available / adjustableSubtotal);
+  return lines.map((line) => {
+    if (isFixedLine(line)) return line;
+    const amount = Math.floor(((Number(line.amount) || 0) * scale) * 100 + 1e-7) / 100;
+    return { ...line, amount };
+  });
+};
 
 /**
  * Category-based summation.
@@ -21,7 +56,7 @@ const round5 = (n) => Math.round(n / 5) * 5;
  */
 const estimateBudget = async ({ trip, destination, itinerary, existingLines = [] }) => {
   const level = trip.budgetLevel || 'mid';
-  const daily = destination.dailyCost?.[level] ?? 150;
+  const daily = destination?.dailyCost?.[level] ?? 150;
   const split = SPLIT[level];
   const days = trip.days;
   const nights = Math.max(1, days - 1);
@@ -45,17 +80,19 @@ const estimateBudget = async ({ trip, destination, itinerary, existingLines = []
 
   let activitiesAmount;
   let activitiesLabel;
+  let activitiesSource = 'estimated';
   if (itinerary?.days?.length) {
     const ids = itinerary.days.flatMap((d) => d.slots.map((s) => s.activity));
     const acts = await Activity.find({ _id: { $in: ids } }).select('cost').lean();
     const perPerson = acts.reduce((s, a) => s + a.cost, 0);
     activitiesAmount = round5(perPerson * travelers);
     activitiesLabel = `${acts.length} planned activities`;
+    activitiesSource = 'fixed';
   } else {
     activitiesAmount = round5(daily * 0.15 * days * travelers);
     activitiesLabel = 'Rough allowance - generate an itinerary for real prices';
   }
-  lines.push({ category: 'activities', label: activitiesLabel, amount: activitiesAmount });
+  lines.push({ category: 'activities', label: activitiesLabel, amount: activitiesAmount, source: activitiesSource });
 
   lines.push({
     category: 'transport',
@@ -96,16 +133,24 @@ const budgetInsights = ({ budget, trip, destination }) => {
   const tips = [];
   const level = trip.budgetLevel || 'mid';
 
-  if (budget.limit && budget.total > budget.limit) {
+  if (budget.limit != null && budget.total > budget.limit) {
     const over = budget.total - budget.limit;
     tips.push(`You're about ${over} ${budget.currency} over your limit.`);
 
+    const fixedSubtotal = budget.lines
+      .filter(isFixedLine)
+      .reduce((sum, line) => sum + (Number(line.amount) || 0), 0);
+    const fixedTotal = Math.round(fixedSubtotal * (1 + budget.contingencyPct / 100));
+    if (fixedTotal > budget.limit) {
+      tips.push(`Manual costs and planned activity prices alone exceed your ceiling by about ${fixedTotal - budget.limit} ${budget.currency}.`);
+    }
+
     const cheaperLevel = level === 'luxury' ? 'mid' : level === 'mid' ? 'budget' : null;
-    if (cheaperLevel) {
+    if (cheaperLevel && destination?.dailyCost?.[level] != null && destination.dailyCost[cheaperLevel] != null) {
       const saving = (destination.dailyCost[level] - destination.dailyCost[cheaperLevel]) * trip.days * trip.travelers;
       tips.push(`Switching to ${cheaperLevel} travel style would save roughly ${round5(saving)} ${budget.currency}.`);
     }
-  } else if (budget.limit) {
+  } else if (budget.limit != null) {
     tips.push(`You've got about ${budget.limit - budget.total} ${budget.currency} of headroom.`);
   }
 
@@ -122,4 +167,4 @@ const budgetInsights = ({ budget, trip, destination }) => {
   return tips;
 };
 
-module.exports = { estimateBudget, budgetInsights, SPLIT };
+module.exports = { estimateBudget, budgetInsights, fitBudgetToLimit, SPLIT };

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Compass, Menu, X, LogOut, Plus } from 'lucide-react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Compass, Menu, X, LogOut, Plus, Search } from 'lucide-react'
 import clsx from 'clsx'
 import { useAuth } from '../context/authContext'
+import { useLanguage } from '../context/LanguageContext'
 
 const navClass = ({ isActive }) =>
   clsx(
@@ -34,8 +35,12 @@ export { Avatar }
 
 export default function Navbar() {
   const { user, isAuthed, logout } = useAuth()
+  const { language, setLanguage, t } = useLanguage()
   const [open, setOpen] = useState(false)
+  const { pathname } = useLocation()
   const navigate = useNavigate()
+  const myTripsNavClass = ({ isActive }) =>
+    navClass({ isActive: isActive && pathname !== '/trips/new' })
 
   useEffect(() => {
     const close = () => setOpen(false)
@@ -51,18 +56,21 @@ export default function Navbar() {
 
   const links = isAuthed ? (
     <>
-      <NavLink to="/dashboard" className={navClass} onClick={() => setOpen(false)}>Home</NavLink>
-      <NavLink to="/explore" className={navClass} onClick={() => setOpen(false)}>Explore</NavLink>
-      <NavLink to="/trips" className={navClass} onClick={() => setOpen(false)}>My trips</NavLink>
-      <NavLink to="/chat" className={navClass} onClick={() => setOpen(false)}>Group chat</NavLink>
-      <NavLink to="/trips/new" className={navClass} onClick={() => setOpen(false)}>Plan a trip</NavLink>
-      <NavLink to="/profile" className={navClass} onClick={() => setOpen(false)}>Preferences</NavLink>
+      <NavLink to="/dashboard" className={navClass} onClick={() => setOpen(false)}>{t('Home')}</NavLink>
+      <NavLink to="/explore" className={navClass} onClick={() => setOpen(false)}>{t('Explore')}</NavLink>
+      <NavLink to="/search" className={navClass} onClick={() => setOpen(false)}><Search size={14} className="mr-1 inline" />{t('Search')}</NavLink>
+      <NavLink to="/creator-routes" className={navClass} onClick={() => setOpen(false)}>{t('Creator routes')}</NavLink>
+      <NavLink to="/trips" className={myTripsNavClass} onClick={() => setOpen(false)}>{t('My trips')}</NavLink>
+      <NavLink to="/chat" className={navClass} onClick={() => setOpen(false)}>{t('Group chat')}</NavLink>
+      <NavLink to="/solo-travelers" className={navClass} onClick={() => setOpen(false)}>{t('Travel buddies')}</NavLink>
     </>
   ) : (
     <>
-      <NavLink to="/" className={navClass} onClick={() => setOpen(false)}>Home</NavLink>
-      <NavLink to="/explore" className={navClass} onClick={() => setOpen(false)}>Explore</NavLink>
-      <NavLink to="/trips/new" className={navClass} onClick={() => setOpen(false)}>Plan a trip</NavLink>
+      <NavLink to="/" className={navClass} onClick={() => setOpen(false)}>{t('Home')}</NavLink>
+      <NavLink to="/explore" className={navClass} onClick={() => setOpen(false)}>{t('Explore')}</NavLink>
+      <NavLink to="/search" className={navClass} onClick={() => setOpen(false)}><Search size={14} className="mr-1 inline" />{t('Search')}</NavLink>
+      <NavLink to="/creator-routes" className={navClass} onClick={() => setOpen(false)}>{t('Creator routes')}</NavLink>
+      <NavLink to="/trips/new" className={navClass} onClick={() => setOpen(false)}>{t('Plan a trip')}</NavLink>
     </>
   )
 
@@ -82,25 +90,32 @@ export default function Navbar() {
           {isAuthed ? (
             <>
               <Link to="/trips/new" className="btn-primary !py-1.5">
-                <Plus size={16} /> Plan a trip
+                <Plus size={16} /> {t('Plan a trip')}
               </Link>
-              <Link to="/profile" className="ml-1 flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-cream" title="Your profile">
+              <Link to="/profile" className="ml-1 flex items-center gap-2 rounded-full p-1 pr-3 hover:bg-cream" title={t('Your profile')}>
                 <Avatar user={user} />
                 <span className="text-sm text-soot">{user.name.split(' ')[0]}</span>
               </Link>
-              <button onClick={handleLogout} className="btn-ghost !px-2" title="Log out">
+              <button onClick={handleLogout} className="btn-ghost !px-2" title={t('Log out')}>
                 <LogOut size={16} />
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="btn-ghost">Log in</Link>
-              <Link to="/register" className="btn-primary !py-1.5">Get started</Link>
+              <Link to="/login" className="btn-ghost">{t('Log in')}</Link>
+              <Link to="/register" className="btn-primary !py-1.5">{t('Get started')}</Link>
             </>
           )}
+          <label className="ml-1">
+            <span className="sr-only">{t('Language')}</span>
+            <select className="rounded-full border border-sand bg-paper px-2 py-1.5 text-xs" value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('Language')}>
+              <option value="en">English</option>
+              <option value="hi">हिन्दी</option>
+            </select>
+          </label>
         </div>
 
-        <button className="btn-ghost !px-2 md:hidden" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+        <button className="btn-ghost !px-2 md:hidden" onClick={() => setOpen((o) => !o)} aria-label={t('Menu')}>
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
       </div>
@@ -112,19 +127,24 @@ export default function Navbar() {
             {isAuthed ? (
               <>
                 <Link to="/trips/new" className="btn-primary" onClick={() => setOpen(false)}>
-                  <Plus size={16} /> Plan a trip
+                  <Plus size={16} /> {t('Plan a trip')}
                 </Link>
-                <Link to="/profile" className="btn-secondary" onClick={() => setOpen(false)}>
-                  Profile & preferences
-                </Link>
-                <button onClick={handleLogout} className="btn-ghost">Log out</button>
+                <Link to="/profile" className="btn-secondary" onClick={() => setOpen(false)}>{t('Profile & preferences')}</Link>
+                <button onClick={handleLogout} className="btn-ghost">{t('Log out')}</button>
               </>
             ) : (
               <>
-                <Link to="/login" className="btn-secondary" onClick={() => setOpen(false)}>Log in</Link>
-                <Link to="/register" className="btn-primary" onClick={() => setOpen(false)}>Get started</Link>
+                <Link to="/login" className="btn-secondary" onClick={() => setOpen(false)}>{t('Log in')}</Link>
+                <Link to="/register" className="btn-primary" onClick={() => setOpen(false)}>{t('Get started')}</Link>
               </>
             )}
+            <label>
+              <span className="label">{t('Language')}</span>
+              <select className="input" value={language} onChange={(event) => setLanguage(event.target.value)} aria-label={t('Language')}>
+                <option value="en">English</option>
+                <option value="hi">हिन्दी</option>
+              </select>
+            </label>
           </div>
         </div>
       )}

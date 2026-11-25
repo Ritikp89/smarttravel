@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import AuthLayout from './AuthLayout'
 import { ErrorBox, INTERESTS, BUDGET_LABEL } from '../ui'
 
 export default function RegisterForm() {
   const { register } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({ name: '', email: '', password: '' })
@@ -52,8 +54,8 @@ export default function RegisterForm() {
       footer={
         step === 1 && (
           <>
-            Already have an account?{' '}
-            <Link to="/login" className="font-medium text-ink underline underline-offset-4">Log in</Link>
+            {t('Already have an account?')}{' '}
+            <Link to="/login" className="font-medium text-ink underline underline-offset-4">{t('Log in')}</Link>
           </>
         )
       }
@@ -68,36 +70,36 @@ export default function RegisterForm() {
         <form onSubmit={next} className="space-y-4">
           <ErrorBox error={error} />
           <div>
-            <label className="label" htmlFor="name">Your name</label>
-            <input id="name" name="name" required maxLength={60} className="input" placeholder="What should we call you?" value={form.name} onChange={onChange} />
+            <label className="label" htmlFor="name">{t('Your name')}</label>
+            <input id="name" name="name" required maxLength={60} className="input" placeholder={t('What should we call you?')} value={form.name} onChange={onChange} />
           </div>
           <div>
-            <label className="label" htmlFor="email">Email</label>
+            <label className="label" htmlFor="email">{t('Email')}</label>
             <input id="email" name="email" type="email" autoComplete="email" required className="input" value={form.email} onChange={onChange} />
           </div>
           <div>
-            <label className="label" htmlFor="password">Password</label>
-            <input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} className="input" placeholder="At least 6 characters" value={form.password} onChange={onChange} />
+            <label className="label" htmlFor="password">{t('Password')}</label>
+            <input id="password" name="password" type="password" autoComplete="new-password" required minLength={6} className="input" placeholder={t('At least 6 characters')} value={form.password} onChange={onChange} />
           </div>
-          <button type="submit" className="btn-primary w-full !py-2.5">Continue</button>
+          <button type="submit" className="btn-primary w-full !py-2.5">{t('Continue')}</button>
         </form>
       ) : (
         <form onSubmit={submit} className="space-y-6">
           <ErrorBox error={error} />
           <div>
-            <p className="label">I'm into…</p>
+            <p className="label">{t("I'm into…")}</p>
             <div className="flex flex-wrap gap-2">
               {INTERESTS.map((i) => (
                 <button type="button" key={i} onClick={() => toggleInterest(i)} className={interests.includes(i) ? 'chip-on' : 'chip-idle'}>
-                  {i}
+                  {t(i)}
                 </button>
               ))}
             </div>
-            <p className="mt-2 text-xs text-stone">Pick as many as you like. Three or four works best.</p>
+            <p className="mt-2 text-xs text-stone">{t('Pick as many as you like. Three or four works best.')}</p>
           </div>
 
           <div>
-            <p className="label">Budget style</p>
+            <p className="label">{t('Budget style')}</p>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(BUDGET_LABEL).map(([key, label]) => (
                 <button
@@ -109,16 +111,16 @@ export default function RegisterForm() {
                     budgetLevel === key ? 'border-ink bg-ink text-paper' : 'border-sand bg-white/60 hover:border-ink/40'
                   )}
                 >
-                  {label}
+                  {t(label)}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="flex gap-2">
-            <button type="button" onClick={() => setStep(1)} className="btn-secondary">Back</button>
+            <button type="button" onClick={() => setStep(1)} className="btn-secondary">{t('Back')}</button>
             <button type="submit" disabled={busy} className="btn-primary flex-1 !py-2.5">
-              {busy ? 'Creating…' : 'Finish up'}
+              {busy ? t('Creating…') : t('Finish up')}
             </button>
           </div>
         </form>

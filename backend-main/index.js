@@ -12,6 +12,12 @@ const tripRoutes = require('./routes/tripRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const externalRoutes = require('./routes/externalRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
+const identityVerificationRoutes = require('./routes/identityVerificationRoutes');
+const soloTravelerRoutes = require('./routes/soloTravelerRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const creatorItineraryRoutes = require('./routes/creatorItineraryRoutes');
+const travelOptionRoutes = require('./routes/travelOptionRoutes');
+const { stripeWebhook } = require('./controllers/identityVerificationController');
 
 if (!process.env.JWT_SECRET) {
   console.error('JWT_SECRET is not set. Copy .env.example to .env and fill it in.');
@@ -34,6 +40,7 @@ app.use(
     credentials: true,
   })
 );
+app.post('/api/webhooks/stripe-identity', express.raw({ type: 'application/json' }), stripeWebhook);
 app.use(express.json({ limit: '1mb' }));
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -49,6 +56,11 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/external', externalRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/identity-verification', identityVerificationRoutes);
+app.use('/api/solo-travelers', soloTravelerRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/creator-itineraries', creatorItineraryRoutes);
+app.use('/api/travel-options', travelOptionRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

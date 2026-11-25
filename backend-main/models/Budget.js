@@ -10,7 +10,7 @@ const lineSchema = new mongoose.Schema(
     label: String,
     amount: { type: Number, required: true, min: 0 },
     // whether we calculated this or the user typed it in
-    source: { type: String, enum: ['estimated', 'manual'], default: 'estimated' },
+    source: { type: String, enum: ['estimated', 'manual', 'fixed'], default: 'estimated' },
   },
   { _id: true }
 );
@@ -26,7 +26,7 @@ const budgetSchema = new mongoose.Schema(
     perDay: { type: Number, default: 0 },
     // optional ceiling the traveller sets for themselves
     limit: { type: Number, min: 0 },
-    contingencyPct: { type: Number, default: 10 },
+    contingencyPct: { type: Number, min: 0, max: 100, default: 10 },
     estimatedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

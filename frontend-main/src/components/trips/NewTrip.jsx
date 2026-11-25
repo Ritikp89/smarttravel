@@ -5,6 +5,7 @@ import { Check } from 'lucide-react'
 import clsx from 'clsx'
 import { destinationApi, tripApi, itineraryApi, budgetApi, externalApi } from '../../services/api'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import { BUDGET_LABEL, ErrorBox, INTERESTS, PACE_LABEL, TRAVEL_STYLES, PageHeader, money, Spinner } from '../ui'
 import { getDestinationFallback, getDestinationImage } from '../../services/travelImages'
 
@@ -16,6 +17,7 @@ const PACE_HELP = {
 
 export default function NewTrip() {
   const { user } = useAuth()
+  const { t, locale } = useLanguage()
   const navigate = useNavigate()
   const [params] = useSearchParams()
 
@@ -171,13 +173,13 @@ export default function NewTrip() {
 
         {/* destination */}
         <section>
-          <label className="label" htmlFor="destination">Where to</label>
+          <label className="label" htmlFor="destination">{t('Where to')}</label>
           <div className="relative">
             <input
               id="destination"
               className="input"
               value={destinationQuery}
-              placeholder="Type a city or country…"
+              placeholder={t('Type a city or country…')}
               autoComplete="off"
               role="combobox"
               aria-expanded={destinationOpen}
@@ -232,7 +234,7 @@ export default function NewTrip() {
                   >
                     <span>
                       <span className="block text-sm font-medium">{place.label}</span>
-                      <span className="block text-xs text-stone">Place · {place.country || place.type || 'Worldwide'}</span>
+                      <span className="block text-xs text-stone">{t('Place')} · {place.country || t(place.type) || t('Worldwide')}</span>
                     </span>
                   </button>
                 ))}
@@ -240,7 +242,7 @@ export default function NewTrip() {
             )}
             {destinationOpen && destinationQuery.trim().length >= 2 && destinationSuggestions.length === 0 && placeSuggestions.length === 0 && (
               <div className="absolute z-20 mt-1 w-full rounded-xl border border-sand bg-white px-3 py-2.5 text-sm text-stone shadow-soft">
-                No matching place yet - keep typing or press Create trip to use "{destinationQuery.trim()}"
+                {t('No matching place yet - keep typing or press Create trip to use "{destination}"', { destination: destinationQuery.trim() })}
               </div>
             )}
           </div>
@@ -266,21 +268,21 @@ export default function NewTrip() {
         {/* dates + people */}
         <section className="grid gap-4 sm:grid-cols-3">
           <div>
-            <label className="label" htmlFor="startDate">From</label>
+            <label className="label" htmlFor="startDate">{t('From')}</label>
             <input id="startDate" type="date" className="input" value={form.startDate} onChange={(e) => set({ startDate: e.target.value })} required />
           </div>
           <div>
-            <label className="label" htmlFor="endDate">To</label>
+            <label className="label" htmlFor="endDate">{t('To')}</label>
             <input id="endDate" type="date" className="input" min={form.startDate} value={form.endDate} onChange={(e) => set({ endDate: e.target.value })} required />
           </div>
           <div>
-            <label className="label" htmlFor="travelers">Travellers</label>
+            <label className="label" htmlFor="travelers">{t('Travellers')}</label>
             <input id="travelers" type="number" min={1} max={20} className="input" value={form.travelers} onChange={(e) => set({ travelers: e.target.value })} />
           </div>
           <p className="text-xs text-stone sm:col-span-3">
-            {days > 0 ? `${days} day${days > 1 ? 's' : ''}` : 'Pick valid dates'}
+            {days > 0 ? t(days > 1 ? '{count} days' : '{count} day', { count: days }) : t('Pick valid dates')}
             {roughCost != null && days > 0 && (
-              <> · rough cost around <span className="font-semibold text-ink">{money(roughCost)}</span> for everyone, before flights</>
+              <> · {t('rough cost around')} <span className="font-semibold text-ink">{money(roughCost, 'USD', locale)}</span> {t('for everyone, before flights')}</>
             )}
           </p>
         </section>
@@ -288,19 +290,19 @@ export default function NewTrip() {
         {/* style */}
         <section className="grid gap-6 sm:grid-cols-2">
           <div>
-            <p className="label">Budget style</p>
+            <p className="label">{t('Budget style')}</p>
             <div className="space-y-2">
               {Object.entries(BUDGET_LABEL).map(([key, label]) => (
-                <OptionRow key={key} on={form.budgetLevel === key} onClick={() => set({ budgetLevel: key })} label={label}
-                  hint={selected ? `~${money(selected.dailyCost[key])} per person per day` : undefined} />
+                <OptionRow key={key} on={form.budgetLevel === key} onClick={() => set({ budgetLevel: key })} label={t(label)}
+                  hint={selected ? `~${money(selected.dailyCost[key], 'USD', locale)} ${t('per person per day')}` : undefined} />
               ))}
             </div>
           </div>
           <div>
-            <p className="label">Pace</p>
+            <p className="label">{t('Pace')}</p>
             <div className="space-y-2">
               {Object.entries(PACE_LABEL).map(([key, label]) => (
-                <OptionRow key={key} on={form.pace === key} onClick={() => set({ pace: key })} label={label} hint={PACE_HELP[key]} />
+                <OptionRow key={key} on={form.pace === key} onClick={() => set({ pace: key })} label={t(label)} hint={t(PACE_HELP[key])} />
               ))}
             </div>
           </div>
@@ -308,7 +310,7 @@ export default function NewTrip() {
 
         {/* travel style */}
         <section>
-          <label className="label" htmlFor="travelStyle">Travel style</label>
+          <label className="label" htmlFor="travelStyle">{t('Travel style')}</label>
           <select
             id="travelStyle"
             className="input"
@@ -321,51 +323,51 @@ export default function NewTrip() {
               })
             }}
           >
-            <option value="">Choose a travel style…</option>
+            <option value="">{t('Choose a travel style…')}</option>
             {Object.entries(TRAVEL_STYLES).map(([key, style]) => (
-              <option key={key} value={key}>{style.label}</option>
+              <option key={key} value={key}>{t(style.label)}</option>
             ))}
           </select>
         </section>
 
         {/* interests */}
         <section>
-          <p className="label">What matters on this trip</p>
+          <p className="label">{t('What matters on this trip')}</p>
           <div className="flex flex-wrap gap-2">
             {INTERESTS.map((i) => (
               <button type="button" key={i} onClick={() => toggleInterest(i)} className={form.interests.includes(i) ? 'chip-on' : 'chip-idle'}>
-                {i}
+                {t(i)}
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-stone">Prefilled from your profile. Change it just for this trip if you like.</p>
+          <p className="mt-2 text-xs text-stone">{t('Prefilled from your profile. Change it just for this trip if you like.')}</p>
         </section>
 
         {/* extras */}
         <section className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="label" htmlFor="title">Trip name <span className="font-normal text-stone">(optional)</span></label>
-            <input id="title" className="input" maxLength={80} placeholder={selected ? `e.g. ${selected.name} with Sam` : 'e.g. Autumn escape'} value={form.title} onChange={(e) => set({ title: e.target.value })} />
+            <label className="label" htmlFor="title">{t('Trip name')} <span className="font-normal text-stone">{t('(optional)')}</span></label>
+            <input id="title" className="input" maxLength={80} placeholder={selected ? t('e.g. {destination} with Sam', { destination: selected.name }) : t('e.g. Autumn escape')} value={form.title} onChange={(e) => set({ title: e.target.value })} />
           </div>
           <div>
-            <label className="label" htmlFor="notes">Notes <span className="font-normal text-stone">(optional)</span></label>
-            <input id="notes" className="input" maxLength={2000} placeholder="Anniversary, need to be back by the 30th, etc." value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
+            <label className="label" htmlFor="notes">{t('Notes')} <span className="font-normal text-stone">{t('(optional)')}</span></label>
+            <input id="notes" className="input" maxLength={2000} placeholder={t('Anniversary, need to be back by the 30th, etc.')} value={form.notes} onChange={(e) => set({ notes: e.target.value })} />
           </div>
         </section>
 
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-sand bg-white/60 p-4 text-sm">
           <input type="checkbox" className="mt-0.5 accent-clay-500" checked={form.autoGenerate} onChange={(e) => set({ autoGenerate: e.target.checked })} />
           <span>
-            <span className="font-medium">Draft the itinerary and budget now</span>
-            <span className="block text-soot">Untick if you'd rather build the days yourself from scratch.</span>
+            <span className="font-medium">{t('Draft the itinerary and budget now')}</span>
+            <span className="block text-soot">{t("Untick if you'd rather build the days yourself from scratch.")}</span>
           </span>
         </label>
 
         <div className="flex items-center justify-end gap-3 border-t border-sand/70 pt-6">
-          {stage && <span className="text-sm text-stone animate-pulse">{stage}</span>}
-          <button type="button" onClick={() => navigate(-1)} className="btn-ghost">Cancel</button>
+          {stage && <span className="text-sm text-stone animate-pulse">{t(stage)}</span>}
+          <button type="button" onClick={() => navigate(-1)} className="btn-ghost">{t('Cancel')}</button>
           <button type="submit" disabled={busy} className="btn-primary !px-6">
-            {busy ? 'Working…' : 'Create trip'}
+            {busy ? t('Working…') : t('Create trip')}
           </button>
         </div>
       </form>

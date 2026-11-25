@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import AuthLayout from './AuthLayout'
 import { ErrorBox } from '../ui'
 
 export default function LoginForm() {
   const { login } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
@@ -36,9 +38,9 @@ export default function LoginForm() {
       subtitle="Pick up where you left off."
       footer={
         <>
-          New here?{' '}
+          {t('New here?')}{' '}
           <Link to="/register" className="font-medium text-ink underline underline-offset-4">
-            Create an account
+            {t('Create an account')}
           </Link>
         </>
       }
@@ -46,18 +48,18 @@ export default function LoginForm() {
       <form onSubmit={onSubmit} className="space-y-4">
         <ErrorBox error={error} />
         <div>
-          <label className="label" htmlFor="email">Email</label>
+          <label className="label" htmlFor="email">{t('Email')}</label>
           <input id="email" name="email" type="email" autoComplete="email" required className="input" value={form.email} onChange={onChange} />
         </div>
         <div>
-          <label className="label" htmlFor="password">Password</label>
+          <label className="label" htmlFor="password">{t('Password')}</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required className="input" value={form.password} onChange={onChange} />
         </div>
         <button type="submit" disabled={busy} className="btn-primary w-full !py-2.5">
-          {busy ? 'Logging in…' : 'Log in'}
+          {busy ? t('Logging in…') : t('Log in')}
         </button>
         <button type="button" onClick={useDemo} className="btn-ghost w-full text-xs">
-          Fill in the demo account
+          {t('Fill in the demo account')}
         </button>
       </form>
     </AuthLayout>

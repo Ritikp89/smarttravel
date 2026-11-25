@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Calculator, Pencil, RotateCcw, Check, X } from 'lucide-react'
 import clsx from 'clsx'
 import { budgetApi } from '../../services/api'
+import { useLanguage } from '../../context/LanguageContext'
 import { Empty, ErrorBox, money } from '../ui'
 
 const LINE_META = {
@@ -14,6 +15,7 @@ const LINE_META = {
 }
 
 export default function BudgetPanel({ trip, budget, insights, onChange }) {
+  const { t, locale } = useLanguage()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [editing, setEditing] = useState(null) // category
@@ -34,7 +36,7 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
     }
   }
 
-  const estimate = () => run(() => budgetApi.estimate(trip._id, { limit: limit === '' ? undefined : Number(limit) }))
+  const estimate = () => run(() => budgetApi.estimate(trip._id, { limit: limit === '' ? null : Number(limit) }))
 
   const startEdit = (line) => {
     setEditing(line.category)
@@ -53,11 +55,10 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
   if (!budget) {
     return (
       <Empty title="No budget yet" illustration="🧮">
-        We'll break down beds, meals, tickets and transport for {trip.travelers} {trip.travelers > 1 ? 'people' : 'person'} over {trip.days} days,
-        using real activity prices if you've got an itinerary.
+        {t("We'll break down beds, meals, tickets and transport for {count} people over {days} days, using real activity prices if you've got an itinerary.", { count: trip.travelers, days: trip.days })}
         <div className="mt-5">
           <button onClick={estimate} disabled={busy} className="btn-primary">
-            <Calculator size={16} /> {busy ? 'Adding it up…' : 'Estimate budget'}
+            <Calculator size={16} /> {busy ? t('Adding it up…') : t('Estimate budget')}
           </button>
         </div>
         <ErrorBox error={error} className="mt-4 text-left" />
@@ -66,8 +67,13 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
   }
 
   const subtotal = budget.lines.reduce((s, l) => s + l.amount, 0)
-  const over = budget.limit && budget.total > budget.limit
+  const over = budget.limit != null && budget.total > budget.limit
   const currency = budget.currency
+  const ceilingProgress = budget.limit > 0
+    ? Math.min(100, (budget.total / budget.limit) * 100)
+    : budget.total > 0
+      ? 100
+      : 0
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -79,7 +85,7 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
           {budget.lines.filter((l) => l.amount > 0).map((l) => (
             <span
               key={l.category}
-              title={`${LINE_META[l.category]?.label}: ${money(l.amount, currency)}`}
+              title={`${t(LINE_META[l.category]?.label || l.category)}: ${money(l.amount, currency, locale)}`}
               className={clsx('h-full transition-all', LINE_META[l.category]?.color)}
               style={{ width: `${(l.amount / subtotal) * 100}%` }}
             />
@@ -95,10 +101,11 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
                 <span className={clsx('h-2.5 w-2.5 shrink-0 rounded-full', meta.color)} />
                 <div className="min-w-0 flex-1">
                   <p className="flex items-center gap-2 text-sm font-medium">
-                    {meta.label}
-                    {line.source === 'manual' && <span className="rounded bg-butter/50 px-1.5 py-px text-[10px] font-semibold uppercase text-ink">yours</span>}
+                    {t(meta.label)}
+                    {line.source === 'manual' && <span className="rounded bg-butter/50 px-1.5 py-px text-[10px] font-semibold uppercase text-ink">{t('yours')}</span>}
+                    {line.source === 'fixed' && <span className="rounded bg-sky-100 px-1.5 py-px text-[10px] font-semibold uppercase text-sky-700">{t('planned')}</span>}
                   </p>
-                  <p className="truncate text-xs text-stone">{line.label}</p>
+                  <p className="truncate text-xs text-stone">{t(line.label)}</p>
                 </div>
 
                 {isEditing ? (
@@ -116,15 +123,15 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
                       }}
                     />
                     <button onClick={commitEdit} className="btn-ghost !p-1.5 text-moss-600"><Check size={14} /></button>
-                    <button onClick={() => setEditing(null)} className="btn-ghost !p-1.5"><X size={14} /></button>
+                    <button onClick={() => setEditing(null)} className="btn-ghost !p-1.5" aria-label={t('Cancel')} title={t('Cancel')}><X size={14} /></button>
                   </div>
                 ) : (
                   <>
-                    <span className="w-24 text-right font-semibold tabular-nums">{money(line.amount, currency)}</span>
+                    <span className="w-24 text-right font-semibold tabular-nums">{money(line.amount, currency, locale)}</span>
                     <div className="flex w-14 justify-end gap-0.5 opacity-0 transition group-hover:opacity-100">
-                      <button onClick={() => startEdit(line)} title="Edit amount" className="btn-ghost !p-1.5"><Pencil size={13} /></button>
+                      <button onClick={() => startEdit(line)} title={t('Edit amount')} className="btn-ghost !p-1.5"><Pencil size={13} /></button>
                       {line.source === 'manual' && (
-                        <button onClick={() => resetLine(line.category)} title="Back to our estimate" className="btn-ghost !p-1.5"><RotateCcw size={13} /></button>
+                        <button onClick={() => resetLine(line.category)} title={t('Back to our estimate')} className="btn-ghost !p-1.5"><RotateCcw size={13} /></button>
                       )}
                     </div>
                   </>
@@ -133,53 +140,58 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
             )
           })}
           <li className="flex items-center justify-between px-4 py-3 text-sm text-soot">
-            <span>Contingency ({budget.contingencyPct}%) - because something always comes up</span>
-            <span className="tabular-nums">{money(budget.total - subtotal, currency)}</span>
+            <span>{t('Contingency ({percent}%) - because something always comes up', { percent: budget.contingencyPct })}</span>
+            <span className="tabular-nums">{money(budget.total - subtotal, currency, locale)}</span>
           </li>
         </ul>
 
         <p className="mt-3 text-xs text-stone">
-          Hover a line to edit it. Anything you type in stays put when you re-estimate.
+          {t('Hover a line to edit it. Anything you type in stays put when you re-estimate.')}
         </p>
       </div>
 
       <aside className="space-y-4">
         <div className={clsx('card p-5', over && 'border-clay-300')}>
-          <p className="eyebrow mb-1">Total</p>
-          <p className="font-display text-4xl font-semibold tabular-nums">{money(budget.total, currency)}</p>
+          <p className="eyebrow mb-1">{t('Total')}</p>
+          <p className="font-display text-4xl font-semibold tabular-nums">{money(budget.total, currency, locale)}</p>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="rounded-lg bg-cream/70 p-2.5">
-              <p className="text-[11px] uppercase text-stone">per person</p>
-              <p className="font-semibold tabular-nums">{money(budget.perPerson, currency)}</p>
+              <p className="text-[11px] uppercase text-stone">{t('per person')}</p>
+              <p className="font-semibold tabular-nums">{money(budget.perPerson, currency, locale)}</p>
             </div>
             <div className="rounded-lg bg-cream/70 p-2.5">
-              <p className="text-[11px] uppercase text-stone">per day</p>
-              <p className="font-semibold tabular-nums">{money(budget.perDay, currency)}</p>
+              <p className="text-[11px] uppercase text-stone">{t('per day')}</p>
+              <p className="font-semibold tabular-nums">{money(budget.perDay, currency, locale)}</p>
             </div>
           </div>
 
           <div className="mt-4">
-            <label className="label" htmlFor="limit">Your ceiling</label>
+            <label className="label" htmlFor="limit">{t('Your ceiling')}</label>
             <div className="flex gap-2">
               <input
                 id="limit"
                 type="number"
                 min={0}
-                placeholder="No limit set"
+                placeholder={t('No limit set')}
                 className="input !py-1.5"
                 value={limit}
                 onChange={(e) => setLimit(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && saveLimit()}
               />
-              <button onClick={saveLimit} disabled={busy} className="btn-secondary !py-1.5">Set</button>
+              <button onClick={saveLimit} disabled={busy} className="btn-secondary !py-1.5">{t('Set')}</button>
             </div>
-            {budget.limit && (
+            <p className="mt-2 text-[11px] text-stone">
+              {t('Estimated categories rebalance to your ceiling. Manual costs and planned activity prices stay fixed.')}
+            </p>
+            {budget.limit != null && (
               <div className="mt-2">
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-cream">
-                  <div className={clsx('h-full rounded-full', over ? 'bg-clay-500' : 'bg-moss-500')} style={{ width: `${Math.min(100, (budget.total / budget.limit) * 100)}%` }} />
+                  <div className={clsx('h-full rounded-full', over ? 'bg-clay-500' : 'bg-moss-500')} style={{ width: `${ceilingProgress}%` }} />
                 </div>
                 <p className={clsx('mt-1 text-xs', over ? 'text-clay-600' : 'text-moss-600')}>
-                  {Math.round((budget.total / budget.limit) * 100)}% of {money(budget.limit, currency)}
+                  {budget.limit > 0
+                    ? t('{percent}% of {amount}', { percent: Math.round((budget.total / budget.limit) * 100), amount: money(budget.limit, currency, locale) })
+                    : `${over ? t('Over ceiling') : t('0% of')} ${money(budget.limit, currency, locale)}`}
                 </p>
               </div>
             )}
@@ -188,15 +200,15 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
 
         {insights?.length > 0 && (
           <div className="note">
-            <p className="mb-1 font-semibold text-ink">A few thoughts</p>
+            <p className="mb-1 font-semibold text-ink">{t('A few thoughts')}</p>
             <ul className="space-y-1.5">
-              {insights.map((tip) => <li key={tip}>{tip}</li>)}
+              {insights.map((tip) => <li key={tip}>{t(tip)}</li>)}
             </ul>
           </div>
         )}
 
         <button onClick={estimate} disabled={busy} className="btn-secondary w-full text-xs">
-          <Calculator size={14} /> Re-estimate from itinerary
+          <Calculator size={14} /> {t('Re-estimate from itinerary')}
         </button>
       </aside>
     </div>

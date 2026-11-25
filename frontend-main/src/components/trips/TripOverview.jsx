@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { tripApi } from '../../services/api'
 import { ForecastStrip } from './WeatherWidget'
+import { useLanguage } from '../../context/LanguageContext'
 import { CATEGORY_EMOJI, ErrorBox, money, Spinner } from '../ui'
 
 // Pulls the /analysis endpoint and lays it out as a handful of cards.
 export default function TripOverview({ trip, hasItinerary, hasBudget, onGoTo }) {
+  const { t, locale } = useLanguage()
   const [analysis, setAnalysis] = useState(null)
   const [error, setError] = useState(null)
 
@@ -21,69 +23,68 @@ export default function TripOverview({ trip, hasItinerary, hasBudget, onGoTo }) 
 
   return (
     <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-      <Stat label="Days away" value={analysis.days} sub={analysis.daysUntil > 0 ? `leaves in ${analysis.daysUntil} days` : analysis.daysUntil === 0 ? 'today' : 'underway or done'} />
+      <Stat label={t('Days away')} value={analysis.days} sub={analysis.daysUntil > 0 ? t('leaves in {count} days', { count: analysis.daysUntil }) : analysis.daysUntil === 0 ? t('today') : t('underway or done')} />
 
       {it ? (
         <>
-          <Stat label="Things to do" value={it.activityCount} sub={`${it.avgHoursPerDay}h a day on average`} />
+          <Stat label={t('Things to do')} value={it.activityCount} sub={t('{hours}h a day on average', { hours: it.avgHoursPerDay })} />
           <Stat
-            label="Busiest day"
-            value={it.busiestDay ? `Day ${it.busiestDay.dayNumber}` : '—'}
-            sub={it.busiestDay ? `${it.busiestDay.hours}h of activities` : ''}
+            label={t('Busiest day')}
+            value={it.busiestDay ? t('Day {day}', { day: it.busiestDay.dayNumber }) : '—'}
+            sub={it.busiestDay ? t('{hours}h of activities', { hours: it.busiestDay.hours }) : ''}
           />
         </>
       ) : (
-        <ActionCard title="No itinerary yet" body="Generate one and we'll tell you how balanced it is." cta="Go to itinerary" onClick={() => onGoTo('itinerary')} />
+        <ActionCard title={t('No itinerary yet')} body={t("Generate one and we'll tell you how balanced it is.")} cta={t('Go to itinerary')} onClick={() => onGoTo('itinerary')} />
       )}
 
       {b ? (
         <>
-          <Stat label="Total budget" value={money(b.total, b.currency)} sub={`${money(b.perPerson, b.currency)} per person`} accent={b.overLimit ? 'clay' : undefined} />
+          <Stat label={t('Total budget')} value={money(b.total, b.currency, locale)} sub={t('{amount} per person', { amount: money(b.perPerson, b.currency, locale) })} accent={b.overLimit ? 'clay' : undefined} />
           <Stat
-            label="Biggest cost"
+            label={t('Biggest cost')}
             value={b.biggestLine ? `${b.biggestLine.share}%` : '—'}
-            sub={b.biggestLine ? `goes on ${b.biggestLine.category}` : ''}
+            sub={b.biggestLine ? t('goes on {category}', { category: t(b.biggestLine.category) }) : ''}
           />
         </>
       ) : (
-        <ActionCard title="No budget yet" body="Estimate one to see where the money goes." cta="Go to budget" onClick={() => onGoTo('budget')} />
+        <ActionCard title={t('No budget yet')} body={t('Estimate one to see where the money goes.')} cta={t('Go to budget')} onClick={() => onGoTo('budget')} />
       )}
 
       {it && (
         <div className="card p-5 md:col-span-2">
-          <p className="eyebrow mb-3">Mix of the trip</p>
+          <p className="eyebrow mb-3">{t('Mix of the trip')}</p>
           <div className="flex flex-wrap gap-2">
             {Object.entries(it.byCategory)
               .sort((a, b) => b[1] - a[1])
               .map(([cat, n]) => (
                 <span key={cat} className="rounded-full bg-cream px-3 py-1 text-sm">
-                  {CATEGORY_EMOJI[cat]} {cat} <span className="text-stone">×{n}</span>
+                  {CATEGORY_EMOJI[cat]} {t(cat)} <span className="text-stone">×{n}</span>
                 </span>
               ))}
           </div>
-          <p className="mt-4 text-sm text-soot">{it.verdict}</p>
+          <p className="mt-4 text-sm text-soot">{t(it.verdict)}</p>
           {it.interestsMissed.length > 0 && (
             <p className="mt-1 text-sm text-soot">
-              You said you cared about <span className="font-medium text-ink">{it.interestsMissed.join(', ')}</span> but nothing in the plan covers it -
-              have a look at what didn't make the cut.
+              {t("You said you cared about {interests} but nothing in the plan covers it - have a look at what didn't make the cut.", { interests: it.interestsMissed.map((interest) => t(interest)).join(', ') })}
             </p>
           )}
           {it.freeDays > 0 && (
-            <p className="mt-1 text-sm text-soot">{it.freeDays} day{it.freeDays > 1 ? 's' : ''} left free on purpose.</p>
+            <p className="mt-1 text-sm text-soot">{t(it.freeDays > 1 ? '{count} days left free on purpose.' : '{count} day left free on purpose.', { count: it.freeDays })}</p>
           )}
         </div>
       )}
 
       {analysis.weather && !analysis.weather.error && analysis.weather.daily?.length > 0 && (
         <div className="card p-5 md:col-span-2 lg:col-span-1">
-          <p className="eyebrow mb-3">Forecast for your dates</p>
-          <ForecastStrip daily={analysis.weather.daily} hint={analysis.weather.hint} />
+          <p className="eyebrow mb-3">{t('Forecast for your dates')}</p>
+          <ForecastStrip daily={analysis.weather.daily} hint={t(analysis.weather.hint)} />
         </div>
       )}
       {!analysis.weather && (
         <div className="card p-5 text-sm text-soot">
-          <p className="eyebrow mb-2">Weather</p>
-          Forecasts only go about two weeks out. We'll show one here once the trip is closer.
+          <p className="eyebrow mb-2">{t('Weather')}</p>
+          {t("Forecasts only go about two weeks out. We'll show one here once the trip is closer.")}
         </div>
       )}
     </div>

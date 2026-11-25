@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowRight, CalendarRange, Coins, Sparkles } from 'lucide-react'
 import { destinationApi } from '../services/api'
 import { useAuth } from '../context/authContext'
+import { useLanguage } from '../context/LanguageContext'
 import DestinationCard from './explore/DestinationCard'
 
 const steps = [
@@ -25,6 +26,7 @@ const steps = [
 
 export default function Home() {
   const { isAuthed } = useAuth()
+  const { t } = useLanguage()
   const [picks, setPicks] = useState([])
 
   useEffect(() => {
@@ -38,24 +40,23 @@ export default function Home() {
     <div>
       <section className="mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 sm:pt-24">
         <div className="max-w-3xl">
-          <p className="eyebrow mb-4">Trip planning, minus the twelve open tabs</p>
+          <p className="eyebrow mb-4">{t('Trip planning, minus the twelve open tabs')}</p>
           <h1 className="text-5xl font-medium leading-[1.05] sm:text-7xl">
-            Plan a trip that <em className="font-light italic text-clay-500">actually</em> fits you.
+            {t('Plan a trip that')} <em className="font-light italic text-clay-500">{t('actually')}</em> {t('fits you.')}
           </h1>
           <p className="mt-6 max-w-xl text-lg text-soot">
-            Smart Travel builds day-by-day itineraries and realistic budgets around the way you like to travel -
-            not around whatever is trending this month.
+            {t('Smart Travel builds day-by-day itineraries and realistic budgets around the way you like to travel - not around whatever is trending this month.')}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to={isAuthed ? '/trips/new' : '/register'} className="btn-primary !px-6 !py-3 !text-base">
-              Start planning <ArrowRight size={18} />
+              {t('Start planning')} <ArrowRight size={18} />
             </Link>
             <Link to="/explore" className="btn-secondary !px-6 !py-3 !text-base">
-              Browse destinations
+              {t('Browse destinations')}
             </Link>
           </div>
           <p className="mt-4 text-xs text-stone">
-            Want to poke around first? Log in as <code className="rounded bg-cream px-1">maya@example.com</code> /{' '}
+            {t('Want to poke around first? Log in as')} <code className="rounded bg-cream px-1">maya@example.com</code> /{' '}
             <code className="rounded bg-cream px-1">password123</code>
           </p>
         </div>
@@ -68,8 +69,8 @@ export default function Home() {
               <span className="absolute -top-3 left-0 font-display text-6xl font-light text-sand">{i + 1}</span>
               <div className="relative pl-1 pt-6">
                 <Icon size={22} className="text-clay-500" />
-                <h3 className="mt-3 text-xl font-semibold">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-soot">{body}</p>
+                <h3 className="mt-3 text-xl font-semibold">{t(title)}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-soot">{t(body)}</p>
               </div>
             </div>
           ))}
@@ -80,11 +81,11 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <p className="eyebrow mb-1">Good right now</p>
-              <h2 className="text-3xl font-semibold">Places worth going this month</h2>
+              <p className="eyebrow mb-1">{t('Good right now')}</p>
+              <h2 className="text-3xl font-semibold">{t('Places worth going this month')}</h2>
             </div>
             <Link to="/explore" className="hidden text-sm text-soot underline-offset-4 hover:underline sm:inline">
-              See all
+              {t('See all')}
             </Link>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

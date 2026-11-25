@@ -53,6 +53,10 @@ export const destinationApi = {
   activities: (idOrSlug, params) => api.get(`/destinations/${idOrSlug}/activities`, { params }).then((r) => r.data),
 }
 
+export const travelOptionApi = {
+  verified: (params) => api.get('/travel-options/verified', { params }).then((r) => r.data),
+}
+
 // ---- trips ----
 export const tripApi = {
   list: (params) => api.get('/trips', { params }).then((r) => r.data.trips),
@@ -72,6 +76,31 @@ export const groupChatApi = {
     api.post(`/chat/rooms/${tripId}/members`, { email }).then((r) => r.data),
 }
 
+export const groupSplitApi = {
+  get: (tripId) => api.get(`/trips/${tripId}/splits`).then((r) => r.data),
+  create: (tripId, body) => api.post(`/trips/${tripId}/splits`, body).then((r) => r.data),
+  setPaid: (tripId, expenseId, userId, paid) =>
+    api.patch(`/trips/${tripId}/splits/${expenseId}/shares/${userId}`, { paid }).then((r) => r.data),
+  remove: (tripId, expenseId) => api.delete(`/trips/${tripId}/splits/${expenseId}`).then((r) => r.data),
+}
+
+export const priceWatchApi = {
+  list: (tripId) => api.get(`/trips/${tripId}/price-watches`).then((r) => r.data),
+  create: (tripId, body) => api.post(`/trips/${tripId}/price-watches`, body).then((r) => r.data),
+  check: (tripId, watchId, latestPrice) =>
+    api.patch(`/trips/${tripId}/price-watches/${watchId}/check`, { latestPrice }).then((r) => r.data),
+  remove: (tripId, watchId) => api.delete(`/trips/${tripId}/price-watches/${watchId}`).then((r) => r.data),
+}
+
+export const savingsPlanApi = {
+  get: (tripId) => api.get(`/trips/${tripId}/savings`).then((r) => r.data),
+  create: (tripId, body) => api.post(`/trips/${tripId}/savings`, body).then((r) => r.data),
+  addContribution: (tripId, body) => api.post(`/trips/${tripId}/savings/contributions`, body).then((r) => r.data),
+  removeContribution: (tripId, contributionId) =>
+    api.delete(`/trips/${tripId}/savings/contributions/${contributionId}`).then((r) => r.data),
+  remove: (tripId) => api.delete(`/trips/${tripId}/savings`).then((r) => r.data),
+}
+
 export const itineraryApi = {
   generate: (tripId, body = {}) => api.post(`/trips/${tripId}/itinerary`, body).then((r) => r.data.itinerary),
   get: (tripId) => api.get(`/trips/${tripId}/itinerary`).then((r) => r.data.itinerary),
@@ -87,6 +116,26 @@ export const budgetApi = {
   resetLine: (tripId, category) => api.post(`/trips/${tripId}/budget/lines/${category}/reset`).then((r) => r.data),
 }
 
+export const identityVerificationApi = {
+  status: () => api.get('/identity-verification/status').then((r) => r.data),
+  createSession: () => api.post('/identity-verification/session').then((r) => r.data),
+}
+
+export const soloTravelerApi = {
+  trips: () => api.get('/solo-travelers/trips').then((r) => r.data.trips),
+  setVisibility: (tripId, enabled) =>
+    api.patch(`/solo-travelers/trips/${tripId}/visibility`, { enabled }).then((r) => r.data),
+  candidates: (tripId) => api.get(`/solo-travelers/trips/${tripId}/candidates`).then((r) => r.data.candidates),
+  request: (tripId, body) => api.post(`/solo-travelers/trips/${tripId}/requests`, body).then((r) => r.data),
+  requests: () => api.get('/solo-travelers/requests').then((r) => r.data.matches),
+  respond: (matchId, action) =>
+    api.patch(`/solo-travelers/requests/${matchId}`, { action }).then((r) => r.data),
+  sendMessage: (matchId, content) =>
+    api.post(`/solo-travelers/requests/${matchId}/messages`, { content }).then((r) => r.data.message),
+  block: (matchId) => api.post(`/solo-travelers/requests/${matchId}/block`).then((r) => r.data),
+  report: (matchId, body) => api.post(`/solo-travelers/requests/${matchId}/report`, body).then((r) => r.data),
+}
+
 // ---- external ----
 export const externalApi = {
   weather: (lat, lng, days = 7) => api.get('/external/weather', { params: { lat, lng, days } }).then((r) => r.data),
@@ -96,6 +145,17 @@ export const externalApi = {
 
 export const feedbackApi = {
   submit: (body) => api.post('/feedback', body).then((r) => r.data),
+}
+
+export const searchApi = {
+  search: (q) => api.get('/search', { params: { q } }).then((r) => r.data),
+}
+
+export const creatorItineraryApi = {
+  list: () => api.get('/creator-itineraries').then((r) => r.data),
+  get: (id) => api.get(`/creator-itineraries/${id}`).then((r) => r.data),
+  create: (body) => api.post('/creator-itineraries', body).then((r) => r.data.itinerary),
+  update: (id, body) => api.put(`/creator-itineraries/${id}`, body).then((r) => r.data.itinerary),
 }
 
 export default api

@@ -4,16 +4,16 @@ import { ArrowLeft, Clock, ExternalLink, Heart, MapPin, Share2, Star, Ticket } f
 import clsx from 'clsx'
 import { destinationApi } from '../../services/api'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import WeatherWidget from '../trips/WeatherWidget'
 import { CATEGORY_EMOJI, ErrorBox, money, Spinner, BUDGET_LABEL } from '../ui'
 import { getDestinationFallback, getDestinationImage } from '../../services/travelImages'
 import { convertCurrency, normalizeCurrency } from '../../services/currency'
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
 export default function DestinationDetail() {
   const { slug } = useParams()
   const { isAuthed, isSaved, toggleSaved, user } = useAuth()
+  const { t, locale } = useLanguage()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [category, setCategory] = useState('')
@@ -33,7 +33,7 @@ export default function DestinationDetail() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <ErrorBox error={error} />
-        <Link to="/explore" className="btn-secondary mt-4"><ArrowLeft size={14} /> Back to explore</Link>
+        <Link to="/explore" className="btn-secondary mt-4"><ArrowLeft size={14} /> {t('Back to explore')}</Link>
       </div>
     )
   }
@@ -45,6 +45,9 @@ export default function DestinationDetail() {
   const shown = category ? activities.filter((a) => a.category === category) : activities
   const coverImage = getDestinationImage(d)
   const currency = normalizeCurrency(user?.preferences?.currency)
+  const months = Array.from({ length: 12 }, (_, index) =>
+    new Intl.DateTimeFormat(locale, { month: 'short' }).format(new Date(2024, index, 1))
+  )
 
   const shareDestination = async () => {
     const url = `${window.location.origin}/explore/${d.slug}`
@@ -59,10 +62,10 @@ export default function DestinationDetail() {
         await navigator.share(shareData)
       } else {
         await navigator.clipboard.writeText(url)
-        window.alert('Destination link copied')
+        window.alert(t('Destination link copied'))
       }
     } catch (error) {
-      if (error?.name !== 'AbortError') window.alert('Could not share this destination')
+      if (error?.name !== 'AbortError') window.alert(t('Could not share this destination'))
     }
   }
 
@@ -82,7 +85,7 @@ export default function DestinationDetail() {
         <div className="absolute inset-x-0 bottom-0">
           <div className="mx-auto max-w-6xl px-4 pb-8 sm:px-6">
             <Link to="/explore" className="mb-4 inline-flex items-center gap-1 text-sm text-paper/80 hover:text-paper">
-              <ArrowLeft size={14} /> All destinations
+              <ArrowLeft size={14} /> {t('All destinations')}
             </Link>
             <div className="flex flex-wrap items-end justify-between gap-4 text-paper">
               <div>
@@ -94,15 +97,15 @@ export default function DestinationDetail() {
               </div>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={shareDestination} className="btn bg-paper/20 text-paper backdrop-blur hover:bg-paper/30">
-                  <Share2 size={16} /> Share
+                  <Share2 size={16} /> {t('Share')}
                 </button>
                 {isAuthed && (
                   <button onClick={() => toggleSaved(d._id)} className={clsx('btn', saved ? 'bg-clay-500 text-paper' : 'bg-paper/20 text-paper backdrop-blur hover:bg-paper/30')}>
-                    <Heart size={16} className={saved ? 'fill-current' : ''} /> {saved ? 'Saved' : 'Save'}
+                    <Heart size={16} className={saved ? 'fill-current' : ''} /> {t(saved ? 'Saved' : 'Save')}
                   </button>
                 )}
                 <Link to={`/trips/new?destination=${d._id}`} className="btn bg-paper text-ink hover:bg-cream">
-                  Plan a trip here
+                  {t('Plan a trip here')}
                 </Link>
               </div>
             </div>
@@ -117,17 +120,17 @@ export default function DestinationDetail() {
           {d.recommendation && (
             <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
               <span className="rounded-full bg-moss-100 px-3 py-1 font-semibold text-moss-700">
-                {d.recommendation.score}% match for you
+                {d.recommendation.score}% {t('match for you')}
               </span>
               {d.recommendation.reasons.map((r) => (
-                <span key={r} className="text-soot">· {r}</span>
+                <span key={r} className="text-soot">· {t(r)}</span>
               ))}
             </div>
           )}
 
           {d.localTip && (
             <div className="note mt-8">
-              <span className="font-semibold text-ink">Local tip. </span>
+              <span className="font-semibold text-ink">{t('Local tip.')} </span>
               {d.localTip}
             </div>
           )}
@@ -135,16 +138,16 @@ export default function DestinationDetail() {
           <section className="mt-12">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="eyebrow mb-1">{activities.length} things to do</p>
-                <h2 className="text-2xl font-semibold">What we'd put on your itinerary</h2>
+                <p className="eyebrow mb-1">{activities.length} {t('things to do')}</p>
+                <h2 className="text-2xl font-semibold">{t("What we'd put on your itinerary")}</h2>
               </div>
             </div>
 
             <div className="mb-5 flex flex-wrap gap-2">
-              <button onClick={() => setCategory('')} className={!category ? 'chip-on' : 'chip-idle'}>All</button>
+              <button onClick={() => setCategory('')} className={!category ? 'chip-on' : 'chip-idle'}>{t('All')}</button>
               {categories.map((c) => (
                 <button key={c} onClick={() => setCategory(c)} className={category === c ? 'chip-on' : 'chip-idle'}>
-                  {CATEGORY_EMOJI[c]} {c}
+                  {CATEGORY_EMOJI[c]} {t(c)}
                 </button>
               ))}
             </div>
@@ -163,10 +166,10 @@ export default function DestinationDetail() {
                     {a.description && <p className="mt-1 text-sm text-soot">{a.description}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone">
                       <span className="flex items-center gap-1"><Clock size={11} /> {a.durationHours}h</span>
-                      <span className="flex items-center gap-1"><Ticket size={11} /> {a.cost === 0 ? 'Free' : money(convertCurrency(a.cost, currency), currency)}</span>
+                      <span className="flex items-center gap-1"><Ticket size={11} /> {a.cost === 0 ? t('Free') : money(convertCurrency(a.cost, currency), currency, locale)}</span>
                       {a.neighborhood && <span>{a.neighborhood}</span>}
-                      {a.preferredTime !== 'any' && <span className="capitalize">best in the {a.preferredTime}</span>}
-                      {a.bookingRequired && <span className="text-clay-500">book ahead</span>}
+                      {a.preferredTime !== 'any' && <span className="capitalize">{t('best in the {time}', { time: t(a.preferredTime) })}</span>}
+                      {a.bookingRequired && <span className="text-clay-500">{t('book ahead')}</span>}
                     </div>
                     <a
                       href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
@@ -178,7 +181,7 @@ export default function DestinationDetail() {
                       rel="noopener noreferrer"
                       className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-clay-600 hover:underline"
                     >
-                      Directions <ExternalLink size={11} />
+                      {t('Directions')} <ExternalLink size={11} />
                     </a>
                     <a
                       href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(`${a.name} ${d.name} ${d.country}`)}`}
@@ -186,7 +189,7 @@ export default function DestinationDetail() {
                       rel="noopener noreferrer"
                       className="mt-3 ml-3 inline-flex items-center gap-1 text-xs font-semibold text-clay-600 hover:underline"
                     >
-                      Book tour <ExternalLink size={11} />
+                      {t('Book tour')} <ExternalLink size={11} />
                     </a>
                   </div>
                 </li>
@@ -197,22 +200,22 @@ export default function DestinationDetail() {
 
         <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
           <div className="card p-5">
-            <p className="eyebrow mb-3">Daily cost, per person</p>
+            <p className="eyebrow mb-3">{t('Daily cost, per person')}</p>
             <ul className="space-y-2">
               {Object.entries(d.dailyCost).map(([k, v]) => (
                 <li key={k} className={clsx('flex items-center justify-between rounded-lg px-3 py-2 text-sm', k === level ? 'bg-ink text-paper' : 'bg-cream/60')}>
-                  <span>{BUDGET_LABEL[k]}</span>
-                  <span className="font-semibold">{money(convertCurrency(v, currency), currency)}</span>
+                  <span>{t(BUDGET_LABEL[k])}</span>
+                  <span className="font-semibold">{money(convertCurrency(v, currency), currency, locale)}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-xs text-stone">Beds, meals, tickets and local transport. Flights not included.</p>
+            <p className="mt-3 text-xs text-stone">{t('Beds, meals, tickets and local transport. Flights not included.')}</p>
           </div>
 
           <div className="card p-5">
-            <p className="eyebrow mb-3">Best time to go</p>
+            <p className="eyebrow mb-3">{t('Best time to go')}</p>
             <div className="grid grid-cols-6 gap-1">
-              {MONTHS.map((m, i) => (
+              {months.map((m, i) => (
                 <span
                   key={m}
                   className={clsx(
@@ -226,11 +229,11 @@ export default function DestinationDetail() {
             </div>
           </div>
 
-          <WeatherWidget coords={d.coordinates} days={7} title="This week there" />
+          <WeatherWidget coords={d.coordinates} days={7} title={t('This week there')} />
 
           {d.knownFor?.length > 0 && (
             <div className="card p-5">
-              <p className="eyebrow mb-3">Known for</p>
+              <p className="eyebrow mb-3">{t('Known for')}</p>
               <ul className="space-y-1.5 text-sm text-soot">
                 {d.knownFor.map((k) => (
                   <li key={k} className="flex gap-2"><span className="text-clay-400">—</span>{k}</li>

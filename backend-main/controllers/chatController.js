@@ -1,6 +1,7 @@
 const ChatMessage = require('../models/ChatMessage');
 const Trip = require('../models/Trip');
 const User = require('../models/User');
+const SoloTravelerMatch = require('../models/SoloTravelerMatch');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 
 const roomForMember = async (tripId, userId) => {
@@ -80,7 +81,15 @@ const inviteMember = asyncHandler(async (req, res) => {
   }
 
   trip.members.addToSet(member._id);
+  const wasMatchingEnabled = trip.matchingEnabled;
+  trip.matchingEnabled = false;
   await trip.save();
+  if (wasMatchingEnabled) {
+    await SoloTravelerMatch.updateMany(
+      { $or: [{ requesterTrip: trip._id }, { recipientTrip: trip._id }], status: { $in: ['pending', 'accepted'] } },
+      { $set: { status: 'withdrawn' } }
+    );
+  }
 
   res.status(201).json({ message: 'Member added to the group chat' });
 });

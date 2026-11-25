@@ -9,6 +9,7 @@ const tripSchema = new mongoose.Schema(
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     travelers: { type: Number, default: 1, min: 1, max: 20 },
+    matchingEnabled: { type: Boolean, default: false },
     budgetLevel: { type: String, enum: ['budget', 'mid', 'luxury'], default: 'mid' },
     pace: { type: String, enum: ['relaxed', 'balanced', 'packed'], default: 'balanced' },
     interests: { type: [String], default: [] },
@@ -22,6 +23,8 @@ const tripSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+tripSchema.index({ matchingEnabled: 1, destination: 1, status: 1, travelers: 1, startDate: 1, endDate: 1 });
 
 tripSchema.virtual('days').get(function () {
   if (!this.startDate || !this.endDate) return 0;

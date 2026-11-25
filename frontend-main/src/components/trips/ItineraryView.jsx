@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { ArrowDown, ArrowUp, Clock, ExternalLink, Footprints, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react'
 import clsx from 'clsx'
 import { destinationApi, itineraryApi } from '../../services/api'
-import { CATEGORY_EMOJI, Empty, ErrorBox, money } from '../ui'
+import { useLanguage } from '../../context/LanguageContext'
+import { CATEGORY_EMOJI, Empty, ErrorBox, formatDate, money } from '../ui'
 
 export default function ItineraryView({ trip, itinerary, onChange }) {
+  const { t, locale } = useLanguage()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [adding, setAdding] = useState(null) // dayNumber currently picking a leftover for
@@ -74,10 +75,12 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
   if (!itinerary) {
     return (
       <Empty title="No itinerary yet" illustration="🗓">
-        We'll pack {trip.days} day{trip.days > 1 ? 's' : ''} in {trip.destination.name} around your interests and pace.
+        {trip.destination?.name
+          ? t("We'll pack {days} days in {destination} around your interests and pace.", { days: trip.days, destination: trip.destination.name })
+          : t('The saved destination is no longer available. You can still view trip details and budget.')}
         <div className="mt-5">
-          <button onClick={generate} disabled={busy} className="btn-primary">
-            <Sparkles size={16} /> {busy ? 'Packing your days…' : 'Generate itinerary'}
+          <button onClick={generate} disabled={busy || !trip.destination?._id} className="btn-primary">
+            <Sparkles size={16} /> {busy ? t('Packing your days…') : trip.destination?._id ? t('Generate itinerary') : t('Destination unavailable')}
           </button>
         </div>
         <ErrorBox error={error} className="mt-4 text-left" />
@@ -92,11 +95,15 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-soot">
-          {totalActivities} activities over {itinerary.days.length} days · about {money(totalCost)} per person in tickets
-          {itinerary.customised && <span className="ml-2 rounded-full bg-butter/50 px-2 py-0.5 text-xs text-ink">edited by you</span>}
+          {t('{count} activities over {days} days · about {amount} per person in tickets', {
+            count: totalActivities,
+            days: itinerary.days.length,
+            amount: money(totalCost, 'USD', locale),
+          })}
+          {itinerary.customised && <span className="ml-2 rounded-full bg-butter/50 px-2 py-0.5 text-xs text-ink">{t('edited by you')}</span>}
         </p>
-        <button onClick={generate} disabled={busy} className="btn-secondary !py-1.5 text-xs" title="Throw this away and build a fresh plan">
-          <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> Regenerate
+        <button onClick={generate} disabled={busy || !trip.destination?._id} className="btn-secondary !py-1.5 text-xs" title={t(trip.destination?._id ? 'Throw this away and build a fresh plan' : 'Destination unavailable')}>
+          <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> {t('Regenerate')}
         </button>
       </div>
 
@@ -107,17 +114,17 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
           <section key={day._id} className="card overflow-hidden">
             <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-sand/60 bg-cream/40 px-5 py-3">
               <div className="flex items-baseline gap-3">
-                <span className="font-display text-2xl font-semibold">Day {day.dayNumber}</span>
-                <span className="text-sm text-soot">{format(new Date(day.date), 'EEEE d MMM')}</span>
+                <span className="font-display text-2xl font-semibold">{t('Day {day}', { day: day.dayNumber })}</span>
+                <span className="text-sm text-soot">{formatDate(day.date, 'EEEE d MMM', locale)}</span>
               </div>
               <div className="flex items-center gap-3 text-xs text-stone">
-                <span className="italic">{day.theme}</span>
+                <span className="italic">{t(day.theme)}</span>
                 {day.slots.length > 0 && (
                   <>
                     <span>·</span>
                     <span className="flex items-center gap-1"><Clock size={11} /> {day.totalHours}h</span>
                     <span>·</span>
-                    <span>{day.estimatedCost === 0 ? 'free' : money(day.estimatedCost)} pp</span>
+                    <span>{day.estimatedCost === 0 ? t('free') : money(day.estimatedCost, 'USD', locale)} {t('pp')}</span>
                   </>
                 )}
               </div>
@@ -126,17 +133,24 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
             <ol className="divide-y divide-sand/50">
               {day.slots.length === 0 && (
                 <li className="px-5 py-6 text-sm text-stone">
-                  Nothing planned. A free day is a fine thing - or add something below.
+                  {t('Nothing planned. A free day is a fine thing - or add something below.')}
                 </li>
               )}
               {day.slots.map((slot, idx) => {
                 const a = slot.activity
-                if (!a) return null
+                if (!a) {
+                  return (
+                    <li key={slot._id} className="flex gap-4 px-5 py-4 text-sm text-stone">
+                      <span className="w-14 shrink-0 text-right tabular-nums">{slot.startTime}</span>
+                      <span>{t('Activity details are no longer available.')}</span>
+                    </li>
+                  )
+                }
                 return (
                   <li key={slot._id} className="group relative flex gap-4 px-5 py-4">
                     {slot.travelMinutesFromPrevious > 0 && (
                       <span className="absolute -top-2.5 left-[4.5rem] flex items-center gap-1 rounded-full border border-sand bg-paper px-2 text-[10px] text-stone">
-                        <Footprints size={10} /> {slot.travelMinutesFromPrevious} min
+                        <Footprints size={10} />                         {t('{count} min', { count: slot.travelMinutesFromPrevious })}
                       </span>
                     )}
                     <div className="w-14 shrink-0 pt-0.5 text-right">
@@ -148,7 +162,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                       <p className="font-medium leading-snug">{a.name}</p>
                       {a.description && <p className="mt-0.5 line-clamp-2 text-sm text-soot">{a.description}</p>}
                       <p className="mt-1 text-xs text-stone">
-                        {a.durationHours}h · {a.cost === 0 ? 'free' : money(a.cost)}
+                        {a.durationHours}h · {a.cost === 0 ? t('free') : money(a.cost, 'USD', locale)}
                         {a.neighborhood && <> · {a.neighborhood}</>}
                         {a.bookingRequired && <span className="text-clay-500"> · book ahead</span>}
                       </p>
@@ -162,7 +176,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                         rel="noopener noreferrer"
                         className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-clay-600 hover:underline"
                       >
-                        Directions <ExternalLink size={11} />
+                        {t('Directions')} <ExternalLink size={11} />
                       </a>
                       <a
                         href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(`${a.name} ${trip.destination?.name || ''}`)}`}
@@ -170,7 +184,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                         rel="noopener noreferrer"
                         className="mt-2 ml-3 inline-flex items-center gap-1 text-xs font-semibold text-clay-600 hover:underline"
                       >
-                        Book tour <ExternalLink size={11} />
+                        {t('Book tour')} <ExternalLink size={11} />
                       </a>
                     </div>
                     <div className="flex shrink-0 flex-col gap-0.5 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
@@ -208,9 +222,9 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
 
       {itinerary.leftovers?.length > 0 && (
         <div className="mt-8">
-          <p className="eyebrow mb-2">Didn't make the cut</p>
+          <p className="eyebrow mb-2">{t("Didn't make the cut")}</p>
           <p className="mb-3 text-sm text-soot">
-            {itinerary.leftovers.length} more thing{itinerary.leftovers.length > 1 ? 's' : ''} at this destination. Swap any in using "add something" on a day.
+            {t(itinerary.leftovers.length > 1 ? '{count} more things at this destination. Swap any in using "add something" on a day.' : '{count} more thing at this destination. Swap any in using "add something" on a day.', { count: itinerary.leftovers.length })}
           </p>
           <ul className="flex flex-wrap gap-2">
             {itinerary.leftovers.map((a) => (
@@ -224,9 +238,9 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
 
       {suggestions.length > 0 && (
         <div className="mt-8">
-          <p className="eyebrow mb-2">More suggestions</p>
+          <p className="eyebrow mb-2">{t('More suggestions')}</p>
           <p className="mb-3 text-sm text-soot">
-            Add another stop to any day, or use these ideas to customize a packed schedule.
+            {t('Add another stop to any day, or use these ideas to customize a packed schedule.')}
           </p>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {suggestions.slice(0, 12).map((activity) => (
@@ -238,7 +252,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                   <p className="mt-1 line-clamp-2 text-xs text-soot">{activity.description}</p>
                 )}
                 <p className="mt-1 text-[11px] text-stone">
-                  {activity.durationHours}h · {activity.cost === 0 ? 'free' : money(activity.cost)}
+                  {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(activity.cost, 'USD', locale)}
                 </p>
               </li>
             ))}
@@ -250,12 +264,13 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
 }
 
 function IconBtn({ children, onClick, disabled, label, danger }) {
+  const { t } = useLanguage()
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      aria-label={label}
-      title={label}
+      aria-label={t(label)}
+      title={t(label)}
       className={clsx(
         'grid h-6 w-6 place-items-center rounded-md transition disabled:opacity-30',
         danger ? 'text-clay-500 hover:bg-clay-50' : 'text-soot hover:bg-cream hover:text-ink'
@@ -267,6 +282,7 @@ function IconBtn({ children, onClick, disabled, label, danger }) {
 }
 
 function SuggestionPicker({ suggestions, onPick, onClose }) {
+  const { t, locale } = useLanguage()
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
 
@@ -282,10 +298,10 @@ function SuggestionPicker({ suggestions, onPick, onClose }) {
     <div className="animate-rise py-2">
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold">Choose an activity for this day</p>
-          <p className="mt-0.5 text-xs text-soot">We'll place your pick at the end and adjust the times.</p>
+          <p className="text-sm font-semibold">{t('Choose an activity for this day')}</p>
+          <p className="mt-0.5 text-xs text-soot">{t("We'll place your pick at the end and adjust the times.")}</p>
         </div>
-        <button onClick={onClose} className="btn-ghost !p-1" aria-label="Close suggestions"><X size={13} /></button>
+        <button onClick={onClose} className="btn-ghost !p-1" aria-label={t('Close suggestions')}><X size={13} /></button>
       </div>
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row">
@@ -294,20 +310,20 @@ function SuggestionPicker({ suggestions, onPick, onClose }) {
           className="input !py-2"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search activities…"
-          aria-label="Search suggested activities"
+          placeholder={t('Search activities…')}
+          aria-label={t('Search suggested activities')}
         />
         {categories.length > 1 && (
           <select
             className="input sm:w-44"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
-            aria-label="Filter activity category"
+            aria-label={t('Filter activity category')}
           >
-            <option value="">All types</option>
+            <option value="">{t('All types')}</option>
             {categories.map((item) => (
               <option key={item} value={item}>
-                {CATEGORY_EMOJI[item]} {item}
+                {CATEGORY_EMOJI[item]} {t(item)}
               </option>
             ))}
           </select>
@@ -317,7 +333,7 @@ function SuggestionPicker({ suggestions, onPick, onClose }) {
       <div className="grid max-h-72 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
         {filtered.length === 0 && (
           <div className="rounded-xl border border-dashed border-sand px-3 py-4 text-sm text-stone sm:col-span-2">
-            No suggestions match this search.
+            {t('No suggestions match this search.')}
           </div>
         )}
         {filtered.map((activity) => (
@@ -336,7 +352,7 @@ function SuggestionPicker({ suggestions, onPick, onClose }) {
                 <span className="mt-0.5 block line-clamp-2 text-xs text-soot">{activity.description}</span>
               )}
               <span className="mt-1 block text-[11px] text-stone">
-                {activity.durationHours}h · {activity.cost === 0 ? 'free' : money(activity.cost)}
+                {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(activity.cost, 'USD', locale)}
                 {activity.neighborhood && <> · {activity.neighborhood}</>}
               </span>
             </span>

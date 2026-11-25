@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from 'lucide-react'
 import { tripApi } from '../../services/api'
+import { useLanguage } from '../../context/LanguageContext'
 import TripCard from './TripCard'
 import { Empty, ErrorBox, PageHeader, Spinner } from '../ui'
 
 export default function TripList() {
+  const { t } = useLanguage()
   const [trips, setTrips] = useState(null)
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('upcoming')
@@ -33,14 +35,14 @@ export default function TripList() {
         eyebrow="My trips"
         title="Everywhere you're going"
         aside={
-          <Link to="/trips/new" className="btn-primary"><Plus size={16} /> Plan a trip</Link>
+          <Link to="/trips/new" className="btn-primary"><Plus size={16} /> {t('Plan a trip')}</Link>
         }
       />
 
       <div className="mb-6 flex gap-1 border-b border-sand/70">
         {[
-          ['upcoming', `Upcoming (${grouped.upcoming.length})`],
-          ['past', `Past (${grouped.past.length})`],
+          ['upcoming', t('Upcoming ({count})', { count: grouped.upcoming.length })],
+          ['past', t('Past ({count})', { count: grouped.past.length })],
         ].map(([key, label]) => (
           <button
             key={key}
@@ -60,7 +62,7 @@ export default function TripList() {
         <Empty
           title={tab === 'upcoming' ? 'Nothing on the calendar' : 'No past trips yet'}
           illustration={tab === 'upcoming' ? '🧳' : '📷'}
-          action={tab === 'upcoming' && <Link to="/trips/new" className="btn-primary">Plan your first trip</Link>}
+          action={tab === 'upcoming' && <Link to="/trips/new" className="btn-primary">{t('Plan your first trip')}</Link>}
         >
           {tab === 'upcoming' ? 'Pick a destination and some dates and we\'ll do the rest.' : 'Once a trip\'s end date passes it shows up here.'}
         </Empty>

@@ -1,8 +1,10 @@
 const Destination = require('../models/Destination');
 const Activity = require('../models/Activity');
+const TravelOption = require('../models/TravelOption');
 const Trip = require('../models/Trip');
 const Itinerary = require('../models/Itinerary');
 const Budget = require('../models/Budget');
+const SoloTravelerMatch = require('../models/SoloTravelerMatch');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 const { recommend, scoreDestination } = require('../services/recommendationService');
 
@@ -113,6 +115,8 @@ const removeDestination = asyncHandler(async (req, res) => {
     Itinerary.deleteMany({ trip: { $in: tripIds } }),
     Budget.deleteMany({ trip: { $in: tripIds } }),
     Activity.deleteMany({ destination: destination._id }),
+    TravelOption.deleteMany({ destination: destination._id }),
+    SoloTravelerMatch.deleteMany({ $or: [{ requesterTrip: { $in: tripIds } }, { recipientTrip: { $in: tripIds } }] }),
     Trip.deleteMany({ _id: { $in: tripIds } }),
     destination.deleteOne(),
   ]);

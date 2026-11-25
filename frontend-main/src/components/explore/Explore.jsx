@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { destinationApi } from '../../services/api'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import DestinationCard from './DestinationCard'
 import FilterBar from './FilterBar'
+import VerifiedTravelOptions from './VerifiedTravelOptions'
 import { Empty, ErrorBox, PageHeader, Spinner } from '../ui'
 
 export default function Explore() {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [params, setParams] = useSearchParams()
   const [tags, setTags] = useState([])
   const [data, setData] = useState(null)
@@ -64,11 +67,14 @@ export default function Explore() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <PageHeader eyebrow="Explore" title="Where to next?">
         {user?.preferences?.interests?.length
-          ? `Match scores are based on your interest in ${user.preferences.interests.slice(0, 3).join(', ')}.`
+          ? t('Match scores are based on your interest in {interests}.', { interests: user.preferences.interests.slice(0, 3).map((interest) => t(interest)).join(', ') })
           : 'Explore destinations around the world, with practical costs and local highlights. Log in to see how each one matches you.'}
       </PageHeader>
 
       <FilterBar filters={filters} tags={tags} onChange={setFilters} />
+      <div className="mt-6">
+        <VerifiedTravelOptions />
+      </div>
 
       <div className="mt-8">
         {loading && !data ? (
@@ -82,9 +88,9 @@ export default function Explore() {
         ) : (
           <>
             <p className="mb-4 text-sm text-stone">
-              {list.length} {list.length === 1 ? 'place' : 'places'}
-              {filters.tag && <> tagged <span className="text-ink">{filters.tag}</span></>}
-              {loading && <span className="ml-2 animate-pulse">updating…</span>}
+              {t(list.length === 1 ? '{count} place' : '{count} places', { count: list.length })}
+              {filters.tag && <> {t('tagged')} <span className="text-ink">{t(filters.tag)}</span></>}
+              {loading && <span className="ml-2 animate-pulse">{t('updating…')}</span>}
             </p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {list.map((d) => (

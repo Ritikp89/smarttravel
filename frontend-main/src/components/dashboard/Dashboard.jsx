@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { differenceInCalendarDays, format } from 'date-fns'
+import { differenceInCalendarDays } from 'date-fns'
 import { ArrowRight, Plus } from 'lucide-react'
 import { destinationApi, tripApi } from '../../services/api'
 import { useAuth } from '../../context/authContext'
+import { useLanguage } from '../../context/LanguageContext'
 import TripCard from '../trips/TripCard'
 import DestinationCard from '../explore/DestinationCard'
-import { Empty, ErrorBox, Spinner, money } from '../ui'
+import { BUDGET_LABEL, Empty, ErrorBox, formatDate, PACE_LABEL, Spinner, money } from '../ui'
 
 const greeting = () => {
   const h = new Date().getHours()
@@ -18,6 +19,7 @@ const greeting = () => {
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const { t, locale } = useLanguage()
   const [trips, setTrips] = useState(null)
   const [picks, setPicks] = useState([])
   const [error, setError] = useState(null)
@@ -38,15 +40,15 @@ export default function Dashboard() {
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow mb-1">{format(new Date(), 'EEEE, d MMMM')}</p>
-          <h1 className="text-4xl font-semibold sm:text-5xl">{greeting()}, {user.name.split(' ')[0]}.</h1>
+          <p className="eyebrow mb-1">{formatDate(new Date(), 'EEEE, d MMMM', locale)}</p>
+          <h1 className="text-4xl font-semibold sm:text-5xl">{t(greeting())}, {user.name.split(' ')[0]}.</h1>
           <p className="mt-2 text-soot">
             {next
-              ? nextTripLine(next)
-              : "Nothing booked. That's either very relaxing or a problem we can fix."}
+              ? nextTripLine(next, t)
+              : t("Nothing booked. That's either very relaxing or a problem we can fix.")}
           </p>
         </div>
-        <Link to="/trips/new" className="btn-primary"><Plus size={16} /> Plan a trip</Link>
+        <Link to="/trips/new" className="btn-primary"><Plus size={16} /> {t('Plan a trip')}</Link>
       </div>
 
       <ErrorBox error={error} className="mb-6" />
@@ -59,8 +61,8 @@ export default function Dashboard() {
             {/* next up */}
             <section>
               <div className="mb-4 flex items-baseline justify-between">
-                <h2 className="text-2xl font-semibold">Next up</h2>
-                {upcoming.length > 1 && <Link to="/trips" className="text-sm text-soot hover:underline">All {upcoming.length} upcoming</Link>}
+                <h2 className="text-2xl font-semibold">{t('Next up')}</h2>
+                {upcoming.length > 1 && <Link to="/trips" className="text-sm text-soot hover:underline">{t('All {count} upcoming', { count: upcoming.length })}</Link>}
               </div>
               {next ? (
                 <div className="grid gap-5 md:grid-cols-2">
@@ -71,7 +73,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               ) : (
-                <Empty title="No upcoming trips" illustration="🧭" action={<Link to="/trips/new" className="btn-primary">Plan one</Link>}>
+                <Empty title="No upcoming trips" illustration="🧭" action={<Link to="/trips/new" className="btn-primary">{t('Plan one')}</Link>}>
                   Pick somewhere from the suggestions on the right, or browse everything.
                 </Empty>
               )}
@@ -82,15 +84,15 @@ export default function Dashboard() {
               <section>
                 <div className="mb-4 flex items-baseline justify-between">
                   <div>
-                    <h2 className="text-2xl font-semibold">Picked for you</h2>
+                    <h2 className="text-2xl font-semibold">{t('Picked for you')}</h2>
                     <p className="text-sm text-soot">
                       {prefs.interests?.length
-                        ? `Because you like ${prefs.interests.slice(0, 3).join(', ')} and it's a good month to go.`
-                        : 'Add some interests to your profile and these get a lot smarter.'}
+                        ? t("Because you like {interests} and it's a good month to go.", { interests: prefs.interests.slice(0, 3).map((interest) => t(interest)).join(', ') })
+                        : t('Add some interests to your profile and these get a lot smarter.')}
                     </p>
                   </div>
                   <Link to="/explore" className="hidden items-center gap-1 text-sm text-soot hover:underline sm:flex">
-                    Explore <ArrowRight size={14} />
+                    {t('Explore')} <ArrowRight size={14} />
                   </Link>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -102,31 +104,31 @@ export default function Dashboard() {
 
           <aside className="space-y-5">
             <div className="card p-5">
-              <p className="eyebrow mb-3">At a glance</p>
+              <p className="eyebrow mb-3">{t('At a glance')}</p>
               <dl className="space-y-3 text-sm">
                 <Row label="Upcoming trips" value={upcoming.length} />
                 <Row label="Trips taken" value={past.length} />
-                <Row label="Committed budget" value={money(totalBudget, prefs.currency)} />
+                <Row label="Committed budget" value={money(totalBudget, prefs.currency, locale)} />
                 <Row label="Saved places" value={user.savedDestinations?.length || 0} />
               </dl>
             </div>
 
             <div className="card p-5">
-              <p className="eyebrow mb-3">How you travel</p>
+              <p className="eyebrow mb-3">{t('How you travel')}</p>
               {prefs.interests?.length ? (
                 <div className="flex flex-wrap gap-1.5">
-                  {prefs.interests.map((i) => <span key={i} className="chip-idle !cursor-default">{i}</span>)}
+                  {prefs.interests.map((i) => <span key={i} className="chip-idle !cursor-default">{t(i)}</span>)}
                 </div>
               ) : (
-                <p className="text-sm text-soot">No interests set yet.</p>
+                <p className="text-sm text-soot">{t('No interests set yet.')}</p>
               )}
-              <p className="mt-3 text-sm text-soot capitalize">{prefs.budgetLevel} budget · {prefs.travelPace} pace</p>
-              <Link to="/profile" className="mt-3 inline-block text-sm text-ink underline underline-offset-4">Edit preferences</Link>
+              <p className="mt-3 text-sm text-soot">{t('{budget} budget · {pace} pace', { budget: t(BUDGET_LABEL[prefs.budgetLevel] || prefs.budgetLevel), pace: t(PACE_LABEL[prefs.travelPace] || prefs.travelPace) })}</p>
+              <Link to="/profile" className="mt-3 inline-block text-sm text-ink underline underline-offset-4">{t('Edit preferences')}</Link>
             </div>
 
             {user.savedDestinations?.length > 0 && (
               <div className="card p-5">
-                <p className="eyebrow mb-3">Saved for later</p>
+                <p className="eyebrow mb-3">{t('Saved for later')}</p>
                 <ul className="space-y-2">
                   {user.savedDestinations.slice(0, 5).map((d) => (
                     <li key={d._id || d}>
@@ -149,24 +151,25 @@ export default function Dashboard() {
   )
 }
 
-function nextTripLine(trip) {
+function nextTripLine(trip, t) {
   const days = differenceInCalendarDays(new Date(trip.startDate), new Date())
-  const name = trip.title || trip.destination?.name || 'Your trip'
-  if (days > 1) return `${name} is ${days} days away.${days < 14 ? ' Time to think about packing.' : ''}`
-  if (days === 1) return `${name} is tomorrow. Passport, charger, sunglasses.`
-  if (days === 0) return `You leave for ${name} today. Go!`
-  return `You're in ${name} right now - hope it's going well.`
+  const name = trip.title || trip.destination?.name || t('Your trip')
+  if (days > 1) return t(days < 14 ? '{name} is {days} days away. Time to think about packing.' : '{name} is {days} days away.', { name, days })
+  if (days === 1) return t('{name} is tomorrow. Passport, charger, sunglasses.', { name })
+  if (days === 0) return t('You leave for {name} today. Go!', { name })
+  return t("You're in {name} right now - hope it's going well.", { name })
 }
 
 function Checklist({ trip }) {
+  const { t, locale } = useLanguage()
   const items = [
-    { done: trip.hasItinerary, label: trip.hasItinerary ? `${trip.activityCount} activities planned` : 'Build an itinerary' },
-    { done: trip.budgetTotal != null, label: trip.budgetTotal != null ? `Budget set at ${money(trip.budgetTotal, trip.currency)}` : 'Estimate the budget' },
-    { done: trip.status === 'booked' || trip.status === 'completed', label: trip.status === 'booked' ? 'Marked as booked' : 'Mark as booked once flights are in' },
+    { done: trip.hasItinerary, label: trip.hasItinerary ? t('{count} activities planned', { count: trip.activityCount }) : t('Build an itinerary') },
+    { done: trip.budgetTotal != null, label: trip.budgetTotal != null ? t('Budget set at {amount}', { amount: money(trip.budgetTotal, trip.currency, locale) }) : t('Estimate the budget') },
+    { done: trip.status === 'booked' || trip.status === 'completed', label: trip.status === 'booked' ? t('Marked as booked') : t('Mark as booked once flights are in') },
   ]
   return (
     <div className="card p-5">
-      <p className="eyebrow mb-3">Where you're at</p>
+      <p className="eyebrow mb-3">{t("Where you're at")}</p>
       <ul className="space-y-2">
         {items.map((it) => (
           <li key={it.label} className="flex items-center gap-2.5 text-sm">
@@ -176,16 +179,17 @@ function Checklist({ trip }) {
         ))}
       </ul>
       <Link to={`/trips/${trip._id}`} className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-ink hover:underline">
-        Open trip <ArrowRight size={14} />
+        {t('Open trip')} <ArrowRight size={14} />
       </Link>
     </div>
   )
 }
 
 function Row({ label, value }) {
+  const { t } = useLanguage()
   return (
     <div className="flex items-center justify-between">
-      <dt className="text-soot">{label}</dt>
+      <dt className="text-soot">{t(label)}</dt>
       <dd className="font-semibold tabular-nums">{value}</dd>
     </div>
   )

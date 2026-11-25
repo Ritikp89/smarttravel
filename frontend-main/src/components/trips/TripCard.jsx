@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom'
-import { differenceInCalendarDays, format } from 'date-fns'
+import { differenceInCalendarDays } from 'date-fns'
 import { CalendarDays, Users } from 'lucide-react'
 import clsx from 'clsx'
-import { money } from '../ui'
+import { useLanguage } from '../../context/LanguageContext'
+import { formatDate, money } from '../ui'
 import { getDestinationFallback, getDestinationImage } from '../../services/travelImages'
 
 const STATUS = {
@@ -12,29 +13,30 @@ const STATUS = {
   cancelled: 'bg-clay-50 text-clay-600',
 }
 
-export function tripCountdown(trip) {
+export function tripCountdown(trip, t = (text) => text) {
   const start = new Date(trip.startDate)
   const end = new Date(trip.endDate)
   const now = new Date()
   const toStart = differenceInCalendarDays(start, now)
-  if (toStart > 1) return `in ${toStart} days`
-  if (toStart === 1) return 'tomorrow'
-  if (toStart === 0) return 'today!'
-  if (differenceInCalendarDays(end, now) >= 0) return 'happening now'
-  return 'done'
+  if (toStart > 1) return t('in {count} days', { count: toStart })
+  if (toStart === 1) return t('tomorrow')
+  if (toStart === 0) return t('today!')
+  if (differenceInCalendarDays(end, now) >= 0) return t('happening now')
+  return t('done')
 }
 
 export default function TripCard({ trip, compact = false }) {
+  const { t, locale } = useLanguage()
   const d = trip.destination
-  const range = `${format(new Date(trip.startDate), 'd MMM')} – ${format(new Date(trip.endDate), 'd MMM yyyy')}`
+  const range = `${formatDate(trip.startDate, 'd MMM', locale)} – ${formatDate(trip.endDate, 'd MMM yyyy', locale)}`
   const countryImage = getDestinationImage(d, trip.coverImage)
 
   return (
-    <Link to={`/trips/${trip._id}`} className={clsx('card group flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lift', compact ? 'flex-row' : 'flex-col')}>
+    <Link to={`/trips/${trip._id}`} reloadDocument className={clsx('card group flex overflow-hidden transition hover:-translate-y-0.5 hover:shadow-lift', compact ? 'flex-row' : 'flex-col')}>
       <div className={clsx('relative shrink-0 overflow-hidden bg-sand', compact ? 'w-28 sm:w-40' : 'aspect-[16/9]')}>
         <img
           src={countryImage}
-          alt={`${d?.country || d?.name || 'Country'} trip`}
+          alt={t('{name} trip', { name: d?.country || d?.name || t('Country') })}
           onError={(event) => {
             event.currentTarget.onerror = null
             event.currentTarget.src = getDestinationFallback(d)
@@ -43,7 +45,7 @@ export default function TripCard({ trip, compact = false }) {
         />
         {!compact && (
           <span className={clsx('absolute left-3 top-3 rounded-full px-2 py-0.5 text-xs font-semibold capitalize', STATUS[trip.status])}>
-            {trip.status}
+            {t(trip.status)}
           </span>
         )}
       </div>
@@ -54,7 +56,7 @@ export default function TripCard({ trip, compact = false }) {
             <p className="text-xs uppercase tracking-wider text-stone">{d?.name}, {d?.country}</p>
             <h3 className="font-display text-xl font-semibold leading-tight">{trip.title}</h3>
           </div>
-          <span className="shrink-0 rounded-full bg-cream px-2 py-0.5 text-xs text-soot">{tripCountdown(trip)}</span>
+          <span className="shrink-0 rounded-full bg-cream px-2 py-0.5 text-xs text-soot">{tripCountdown(trip, t)}</span>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-soot">
@@ -64,9 +66,9 @@ export default function TripCard({ trip, compact = false }) {
 
         <div className="mt-auto flex items-center justify-between pt-4 text-xs">
           <span className={trip.hasItinerary ? 'text-moss-600' : 'text-stone'}>
-            {trip.hasItinerary ? `${trip.activityCount} activities planned` : 'No itinerary yet'}
+            {trip.hasItinerary ? t('{count} activities planned', { count: trip.activityCount }) : t('No itinerary yet')}
           </span>
-          {trip.budgetTotal != null && <span className="font-semibold text-ink">{money(trip.budgetTotal, trip.currency)}</span>}
+          {trip.budgetTotal != null && <span className="font-semibold text-ink">{money(trip.budgetTotal, trip.currency, locale)}</span>}
         </div>
       </div>
     </Link>

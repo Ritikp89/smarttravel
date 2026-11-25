@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).select('+role');
     if (!user) {
       return res.status(401).json({ message: 'This account no longer exists' });
     }
@@ -40,4 +40,11 @@ const optionalAuth = async (req, res, next) => {
   next();
 };
 
-module.exports = { protect, optionalAuth };
+const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ message: 'Administrator access is required' });
+  }
+  next();
+};
+
+module.exports = { protect, optionalAuth, requireAdmin };

@@ -3,6 +3,10 @@ const Destination = require('../models/Destination');
 const Itinerary = require('../models/Itinerary');
 const Budget = require('../models/Budget');
 const ChatMessage = require('../models/ChatMessage');
+const TripSplit = require('../models/TripSplit');
+const TripPriceWatch = require('../models/TripPriceWatch');
+const TripSavingsPlan = require('../models/TripSavingsPlan');
+const SoloTravelerMatch = require('../models/SoloTravelerMatch');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 const { getForecast, packingHint } = require('../services/weatherService');
 const { geocode } = require('../services/mapsService');
@@ -142,16 +146,25 @@ const updateTrip = asyncHandler(async (req, res) => {
   const trip = await ownTrip(req.params.id, req.user._id);
   const allowed = ['title', 'startDate', 'endDate', 'travelers', 'budgetLevel', 'pace', 'interests', 'status', 'notes'];
   const datesChanged = ['startDate', 'endDate'].some((k) => req.body[k] !== undefined);
+  const matchingInvalidated = datesChanged
+    || (req.body.travelers !== undefined && Number(req.body.travelers) !== 1)
+    || (req.body.status !== undefined && !['planning', 'booked'].includes(req.body.status));
 
   allowed.forEach((k) => {
     if (req.body[k] !== undefined) trip[k] = req.body[k];
   });
+  if (matchingInvalidated) trip.matchingEnabled = false;
   await trip.save();
 
-  // Existing itinerary won't line up with new dates - flag it so the UI nudges a regenerate
-  if (datesChanged) {
-    await Itinerary.updateOne({ trip: trip._id }, { $set: { customised: false } });
+  const sideEffects = [];
+  if (datesChanged) sideEffects.push(Itinerary.updateOne({ trip: trip._id }, { $set: { customised: false } }));
+  if (matchingInvalidated) {
+    sideEffects.push(SoloTravelerMatch.updateMany(
+      { $or: [{ requesterTrip: trip._id }, { recipientTrip: trip._id }], status: { $in: ['pending', 'accepted'] } },
+      { $set: { status: 'withdrawn' } }
+    ));
   }
+  await Promise.all(sideEffects);
 
   res.json({ trip, staleItinerary: datesChanged });
 });
@@ -163,6 +176,10 @@ const deleteTrip = asyncHandler(async (req, res) => {
     Itinerary.deleteOne({ trip: trip._id }),
     Budget.deleteOne({ trip: trip._id }),
     ChatMessage.deleteMany({ trip: trip._id }),
+    TripSplit.deleteMany({ trip: trip._id }),
+    TripPriceWatch.deleteMany({ trip: trip._id }),
+    TripSavingsPlan.deleteOne({ trip: trip._id }),
+    SoloTravelerMatch.deleteMany({ $or: [{ requesterTrip: trip._id }, { recipientTrip: trip._id }] }),
     trip.deleteOne(),
   ]);
   res.json({ message: 'Trip deleted', id: trip._id });

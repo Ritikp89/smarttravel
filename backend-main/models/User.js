@@ -14,8 +14,25 @@ const INTERESTS = [
   'wellness',
 ];
 
+const identityVerificationSchema = new mongoose.Schema(
+  {
+    provider: { type: String, enum: ['stripe'], default: undefined },
+    sessionId: { type: String, default: undefined },
+    status: {
+      type: String,
+      enum: ['not_started', 'creating', 'pending', 'processing', 'requires_input', 'verified', 'canceled'],
+      default: 'not_started',
+    },
+    attempt: { type: Number, min: 0, default: 0 },
+    verifiedAt: { type: Date, default: null },
+    ageBand: { type: String, enum: ['18-24', '25-34', '35-44', '45+'], default: null },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
+    role: { type: String, enum: ['user', 'admin'], default: 'user', select: false },
     name: {
       type: String,
       required: [true, 'Please tell us your name'],
@@ -50,6 +67,8 @@ const userSchema = new mongoose.Schema(
       homeCity: { type: String, trim: true, default: '' },
       currency: { type: String, default: 'USD' },
     },
+    identityVerification: { type: identityVerificationSchema, default: () => ({}) },
+    blockedTravelers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     savedDestinations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Destination' }],
   },
   { timestamps: true }
@@ -69,6 +88,11 @@ userSchema.methods.toSafeObject = function () {
   const obj = this.toObject();
   delete obj.password;
   delete obj.__v;
+  delete obj.blockedTravelers;
+  if (obj.identityVerification) {
+    delete obj.identityVerification.sessionId;
+    delete obj.identityVerification.attempt;
+  }
   return obj;
 };
 
