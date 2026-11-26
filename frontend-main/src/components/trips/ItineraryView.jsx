@@ -4,8 +4,9 @@ import clsx from 'clsx'
 import { destinationApi, itineraryApi } from '../../services/api'
 import { useLanguage } from '../../context/LanguageContext'
 import { CATEGORY_EMOJI, Empty, ErrorBox, formatDate, money } from '../ui'
+import { convertCurrency } from '../../services/currency'
 
-export default function ItineraryView({ trip, itinerary, onChange }) {
+export default function ItineraryView({ trip, itinerary, currency = 'INR', onChange }) {
   const { t, locale } = useLanguage()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -98,7 +99,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
           {t('{count} activities over {days} days · about {amount} per person in tickets', {
             count: totalActivities,
             days: itinerary.days.length,
-            amount: money(totalCost, 'USD', locale),
+            amount: money(convertCurrency(totalCost, currency), currency, locale),
           })}
           {itinerary.customised && <span className="ml-2 rounded-full bg-butter/50 px-2 py-0.5 text-xs text-ink">{t('edited by you')}</span>}
         </p>
@@ -124,7 +125,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                     <span>·</span>
                     <span className="flex items-center gap-1"><Clock size={11} /> {day.totalHours}h</span>
                     <span>·</span>
-                    <span>{day.estimatedCost === 0 ? t('free') : money(day.estimatedCost, 'USD', locale)} {t('pp')}</span>
+                    <span>{day.estimatedCost === 0 ? t('free') : money(convertCurrency(day.estimatedCost, currency), currency, locale)} {t('pp')}</span>
                   </>
                 )}
               </div>
@@ -162,7 +163,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                       <p className="font-medium leading-snug">{a.name}</p>
                       {a.description && <p className="mt-0.5 line-clamp-2 text-sm text-soot">{a.description}</p>}
                       <p className="mt-1 text-xs text-stone">
-                        {a.durationHours}h · {a.cost === 0 ? t('free') : money(a.cost, 'USD', locale)}
+                        {a.durationHours}h · {a.cost === 0 ? t('free') : money(convertCurrency(a.cost, currency), currency, locale)}
                         {a.neighborhood && <> · {a.neighborhood}</>}
                         {a.bookingRequired && <span className="text-clay-500"> · book ahead</span>}
                       </p>
@@ -252,7 +253,7 @@ export default function ItineraryView({ trip, itinerary, onChange }) {
                   <p className="mt-1 line-clamp-2 text-xs text-soot">{activity.description}</p>
                 )}
                 <p className="mt-1 text-[11px] text-stone">
-                  {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(activity.cost, 'USD', locale)}
+                  {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(convertCurrency(activity.cost, currency), currency, locale)}
                 </p>
               </li>
             ))}
@@ -352,7 +353,7 @@ function SuggestionPicker({ suggestions, onPick, onClose }) {
                 <span className="mt-0.5 block line-clamp-2 text-xs text-soot">{activity.description}</span>
               )}
               <span className="mt-1 block text-[11px] text-stone">
-                {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(activity.cost, 'USD', locale)}
+                {activity.durationHours}h · {activity.cost === 0 ? t('free') : money(convertCurrency(activity.cost, currency), currency, locale)}
                 {activity.neighborhood && <> · {activity.neighborhood}</>}
               </span>
             </span>

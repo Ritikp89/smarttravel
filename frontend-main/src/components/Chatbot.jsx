@@ -5,6 +5,7 @@ import clsx from 'clsx'
 import { destinationApi, tripApi } from '../services/api'
 import { useAuth } from '../context/authContext'
 import { useLanguage } from '../context/LanguageContext'
+import { FAQ_SECTIONS, findTravelFaq } from './travelFaq'
 
 const STARTERS = ['Where should I travel?', 'Show my upcoming trips', 'Find a beach destination', 'Plan a budget trip']
 
@@ -41,6 +42,11 @@ export default function Chatbot() {
 
     try {
       const lower = text.toLowerCase()
+      const faq = findTravelFaq(text)
+      if (faq) {
+        addMessage({ role: 'assistant', text: faq.answer, action: faq.action })
+        return
+      }
 
       if (isAuthed && /(my trip|my trips|upcoming|planned trip|मेरी यात्र|आने वाली यात्र)/.test(lower)) {
         const trips = await tripApi.list()
@@ -146,12 +152,37 @@ export default function Chatbot() {
               </div>
             ))}
             {messages.length === 1 && (
-              <div className="flex flex-wrap gap-2">
-                {STARTERS.map((starter) => (
-                  <button key={starter} type="button" onClick={() => answer(t(starter))} className="chip-idle" disabled={busy}>
-                    {t(starter)}
-                  </button>
-                ))}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {STARTERS.map((starter) => (
+                    <button key={starter} type="button" onClick={() => answer(t(starter))} className="chip-idle" disabled={busy}>
+                      {t(starter)}
+                    </button>
+                  ))}
+                </div>
+                <p className="eyebrow">{t('Common travel questions')}</p>
+                <div className="space-y-2">
+                  {FAQ_SECTIONS.map((section) => (
+                    <details key={section.title} className="rounded-xl border border-sand bg-white/60">
+                      <summary className="cursor-pointer list-none px-3 py-2 text-xs font-semibold text-ink">
+                        {t(section.title)} <span className="ml-1 text-stone">({section.questions.length})</span>
+                      </summary>
+                      <div className="space-y-1 border-t border-sand/70 p-2">
+                        {section.questions.map((item) => (
+                          <button
+                            key={item.question}
+                            type="button"
+                            onClick={() => answer(t(item.question))}
+                            disabled={busy}
+                            className="block w-full rounded-lg px-2.5 py-2 text-left text-xs leading-relaxed text-soot hover:bg-cream hover:text-ink disabled:opacity-50"
+                          >
+                            {t(item.question)}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
               </div>
             )}
             <div ref={endRef} />

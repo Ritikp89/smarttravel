@@ -117,6 +117,15 @@ export default function DestinationDetail() {
         <div>
           <p className="text-lg leading-relaxed text-soot">{d.description}</p>
 
+          <div className="mt-6">
+            <WeatherWidget
+              coords={d.coordinates}
+              days={7}
+              title="Live 7-day weather forecast"
+              location={`${d.name}, ${d.country}`}
+            />
+          </div>
+
           {d.recommendation && (
             <div className="mt-6 flex flex-wrap items-center gap-2 text-sm">
               <span className="rounded-full bg-moss-100 px-3 py-1 font-semibold text-moss-700">
@@ -228,8 +237,6 @@ export default function DestinationDetail() {
               ))}
             </div>
           </div>
-
-          <WeatherWidget coords={d.coordinates} days={7} title={t('This week there')} />
 
           {d.knownFor?.length > 0 && (
             <div className="card p-5">

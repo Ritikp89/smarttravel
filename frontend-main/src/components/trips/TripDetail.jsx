@@ -28,11 +28,16 @@ const travelLinks = (trip, destination, origin) => {
   const start = format(new Date(trip.startDate), 'yyyy-MM-dd')
   const end = format(new Date(trip.endDate), 'yyyy-MM-dd')
   const travellers = Number(trip.travelers) || 1
+  const { lat, lng } = destination.coordinates || {}
+  const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lng) && (lat !== 0 || lng !== 0)
+  const localTransportQuery = hasCoordinates
+    ? `public transport near ${lat},${lng}`
+    : `public transport in ${to}`
 
   return {
     googleFlights: `https://www.google.com/travel/flights?q=${encodeURIComponent(`Flights from ${from} to ${to} from ${start} to ${end} for ${travellers} travelers`)}`,
     booking: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(to)}&checkin=${start}&checkout=${end}&group_adults=${travellers}&no_rooms=${Math.max(1, Math.ceil(travellers / 2))}`,
-    transport: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination.coordinates?.lat != null ? `${destination.coordinates.lat},${destination.coordinates.lng}` : to)}&travelmode=transit`,
+    transport: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(localTransportQuery)}`,
   }
 }
 
@@ -84,7 +89,11 @@ export default function TripDetail() {
 
   const { trip, itinerary, budget } = data
   const d = trip.destination || { name: t('Unknown destination'), country: '' }
-  const bookingLinks = travelLinks(trip, d, user?.preferences?.homeCity)
+  const profileOrigin = [user?.preferences?.homeCity?.trim(), user?.preferences?.homeCountry?.trim()]
+    .filter(Boolean)
+    .join(', ')
+  const originCity = profileOrigin || trip.originCity || ''
+  const bookingLinks = travelLinks(trip, d, originCity)
   const countryImage = getDestinationImage(d, trip.coverImage)
 
   return (
@@ -127,6 +136,7 @@ export default function TripDetail() {
                   <span className="text-stone">({t('{count} days', { count: trip.days })})</span>
                 </span>
                 <span className="flex items-center gap-1.5"><Users size={14} /> {trip.travelers} {t(trip.travelers > 1 ? 'travellers' : 'traveller')}</span>
+                {originCity && <span className="flex items-center gap-1.5"><Plane size={14} /> {t('Flights from {city}', { city: originCity })}</span>}
                 <span>{t(BUDGET_LABEL[trip.budgetLevel])} · {t(PACE_LABEL[trip.pace])} {t('pace')}</span>
               </div>
               {trip.notes && <p className="mt-3 max-w-xl text-sm italic text-soot">"{trip.notes}"</p>}
@@ -198,7 +208,7 @@ export default function TripDetail() {
       <OfflinePackPanel data={data} />
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 animate-rise" key={tab}>
-        {tab === 'itinerary' && <ItineraryView trip={trip} itinerary={itinerary} onChange={onItineraryChange} />}
+        {tab === 'itinerary' && <ItineraryView trip={trip} itinerary={itinerary} currency={budget?.currency || user?.preferences?.currency || 'INR'} onChange={onItineraryChange} />}
         {tab === 'budget' && <BudgetPanel trip={trip} budget={budget} insights={insights} onChange={onBudgetChange} />}
         {tab === 'overview' && <TripOverview trip={trip} hasItinerary={Boolean(itinerary)} hasBudget={Boolean(budget)} onGoTo={setTab} />}
       </div>

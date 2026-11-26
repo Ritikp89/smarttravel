@@ -31,7 +31,7 @@ const currencyFor = async (body, user, trip) => {
     return currency;
   }
   const budget = await Budget.findOne({ trip: trip._id }).select('currency').lean();
-  return normalizeCurrency(budget?.currency || user.preferences?.currency || 'USD');
+  return normalizeCurrency(budget?.currency || user.preferences?.currency || 'INR');
 };
 
 const serializePlan = (plan, now = new Date()) => {
@@ -64,7 +64,7 @@ const getPlan = asyncHandler(async (req, res) => {
     populatePlan(TripSavingsPlan.findOne({ trip: trip._id })),
     Budget.findOne({ trip: trip._id }).select('total currency').lean(),
   ]);
-  const currency = plan?.currency || normalizeCurrency(budget?.currency || req.user.preferences?.currency || 'USD');
+  const currency = plan?.currency || normalizeCurrency(budget?.currency || req.user.preferences?.currency || 'INR');
   res.json({
     trip,
     ...(plan ? serializePlan(plan) : { plan: null, schedule: [], contributedAmount: 0, remainingAmount: 0 }),

@@ -41,7 +41,7 @@ export default function SavingsPlan() {
   const [targetAmount, setTargetAmount] = useState('')
   const [depositAmount, setDepositAmount] = useState('')
   const [frequency, setFrequency] = useState('monthly')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState(user?.preferences?.currency || 'INR')
   const [contributionAmount, setContributionAmount] = useState('')
   const [contributionNote, setContributionNote] = useState('')
   const [contributorId, setContributorId] = useState('')
@@ -50,7 +50,7 @@ export default function SavingsPlan() {
 
   const applyResult = useCallback((result) => {
     setData(result)
-    setCurrency(result.currency || 'USD')
+    setCurrency(result.currency || 'INR')
     setTargetAmount((current) => current || (result.targetSuggestion ? String(result.targetSuggestion) : ''))
     setDepositAmount((current) => {
       if (current || !result.targetSuggestion) return current

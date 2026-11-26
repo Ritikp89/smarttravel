@@ -35,7 +35,7 @@ const currencyFor = async (req, trip) => {
     return currency;
   }
   const budget = await Budget.findOne({ trip: trip._id }).select('currency').lean();
-  return normalizeCurrency(budget?.currency || req.user.preferences?.currency || 'USD');
+  return normalizeCurrency(budget?.currency || req.user.preferences?.currency || 'INR');
 };
 
 const validateParticipantIds = (ids, participants) => {

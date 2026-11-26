@@ -19,7 +19,7 @@ const budgetSchema = new mongoose.Schema(
   {
     trip: { type: mongoose.Schema.Types.ObjectId, ref: 'Trip', required: true, unique: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    currency: { type: String, default: 'USD' },
+    currency: { type: String, default: 'INR' },
     lines: [lineSchema],
     total: { type: Number, default: 0 },
     perPerson: { type: Number, default: 0 },

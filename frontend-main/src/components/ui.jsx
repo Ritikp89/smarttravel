@@ -65,7 +65,7 @@ export const money = (n, currency = 'USD', locale = 'en') =>
 export const formatDate = (value, pattern, locale = 'en') =>
   formatDateFns(new Date(value), pattern, locale === 'hi-IN' ? { locale: hi } : undefined)
 
-export const BUDGET_LABEL = { budget: 'Shoestring', mid: 'Comfortable', luxury: 'Treat yourself' }
+export const BUDGET_LABEL = { budget: 'Shoestring', mid: 'Moderate', luxury: 'Treat yourself' }
 export const PACE_LABEL = { relaxed: 'Relaxed', balanced: 'Balanced', packed: 'Packed' }
 export const INTERESTS = ['culture', 'food', 'nature', 'adventure', 'beach', 'nightlife', 'history', 'shopping', 'art', 'wellness']
 export const TRAVEL_STYLES = {

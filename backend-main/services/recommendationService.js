@@ -1,4 +1,5 @@
 const Destination = require('../models/Destination');
+const { dailyCostFor } = require('./destinationCostService');
 
 // How a destination's tags map to user interests. Tags are freeform on the destination,
 // interests are a fixed list on the user, so we need a little translation layer.
@@ -67,7 +68,7 @@ const scoreDestination = (dest, { interests = [], budgetLevel = 'mid', month } =
 
   // budget - compare the destination's cost at the user's level to a rough global median
   const medians = { budget: 60, mid: 150, luxury: 350 };
-  const cost = dest.dailyCost?.[budgetLevel] ?? medians[budgetLevel];
+  const cost = dailyCostFor(dest, budgetLevel) ?? medians[budgetLevel];
   const ratio = cost / medians[budgetLevel];
   if (ratio <= 0.8) {
     score += 25;

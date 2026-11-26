@@ -1,4 +1,6 @@
 const Activity = require('../models/Activity');
+const { convertAmount } = require('./currencyService');
+const { dailyCostFor } = require('./destinationCostService');
 
 // How a destination's daily cost splits across categories, by travel style.
 // Budget travellers spend proportionally more on food and transport, luxury on the bed.
@@ -51,12 +53,12 @@ const fitBudgetToLimit = (lines, limit, contingencyPct = 10) => {
  * Every line is derived from the destination's per-person daily cost at the chosen
  * budget level, scaled by travellers and nights. Activities are the exception - if an
  * itinerary exists we sum the real ticket prices; otherwise we fall back to a share of
- * the daily cost. Flights are left at 0 with a note since we don't know where you're
- * flying from - the user can type that in.
+ * the daily cost. Flights are left at 0 for manual entry; when the traveler has a
+ * profile home city, the flight line shows that city as the origin.
  */
-const estimateBudget = async ({ trip, destination, itinerary, existingLines = [] }) => {
+const estimateBudget = async ({ trip, destination, itinerary, existingLines = [], originCity = '' }) => {
   const level = trip.budgetLevel || 'mid';
-  const daily = destination?.dailyCost?.[level] ?? 150;
+  const daily = dailyCostFor(destination, level) ?? 150;
   const split = SPLIT[level];
   const days = trip.days;
   const nights = Math.max(1, days - 1);
@@ -101,11 +103,14 @@ const estimateBudget = async ({ trip, destination, itinerary, existingLines = []
   });
 
   // keep anything the user already entered by hand
+  const flightLabel = originCity
+    ? `Flights from ${originCity} to ${destination?.name || 'your destination'} - enter total fare for all travelers`
+    : 'Add your own - depends where you fly from';
   const manualFlights = existingLines.find((l) => l.category === 'flights' && l.source === 'manual');
   lines.push(
     manualFlights
-      ? manualFlights
-      : { category: 'flights', label: 'Add your own - depends where you fly from', amount: 0 }
+      ? { ...manualFlights, label: flightLabel }
+      : { category: 'flights', label: flightLabel, amount: 0 }
   );
 
   lines.push({
@@ -146,9 +151,15 @@ const budgetInsights = ({ budget, trip, destination }) => {
     }
 
     const cheaperLevel = level === 'luxury' ? 'mid' : level === 'mid' ? 'budget' : null;
-    if (cheaperLevel && destination?.dailyCost?.[level] != null && destination.dailyCost[cheaperLevel] != null) {
-      const saving = (destination.dailyCost[level] - destination.dailyCost[cheaperLevel]) * trip.days * trip.travelers;
-      tips.push(`Switching to ${cheaperLevel} travel style would save roughly ${round5(saving)} ${budget.currency}.`);
+    const currentDailyCost = dailyCostFor(destination, level);
+    const cheaperDailyCost = dailyCostFor(destination, cheaperLevel);
+    if (cheaperLevel && currentDailyCost != null && cheaperDailyCost != null) {
+      const saving = convertAmount(
+        (currentDailyCost - cheaperDailyCost) * trip.days * trip.travelers,
+        'USD',
+        budget.currency
+      );
+      tips.push(`Switching to ${cheaperLevel} travel style would save roughly ${saving} ${budget.currency}.`);
     }
   } else if (budget.limit != null) {
     tips.push(`You've got about ${budget.limit - budget.total} ${budget.currency} of headroom.`);

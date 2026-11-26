@@ -5,6 +5,7 @@ const tripSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     destination: { type: mongoose.Schema.Types.ObjectId, ref: 'Destination', required: true },
+    originCity: { type: String, trim: true, maxlength: 100, default: '' },
     title: { type: String, trim: true, maxlength: 80 },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },

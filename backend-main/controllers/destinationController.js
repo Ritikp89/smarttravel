@@ -7,6 +7,7 @@ const Budget = require('../models/Budget');
 const SoloTravelerMatch = require('../models/SoloTravelerMatch');
 const { asyncHandler, ApiError } = require('../middleware/errorHandler');
 const { recommend, scoreDestination } = require('../services/recommendationService');
+const { withBudgetCosts } = require('../services/destinationCostService');
 
 // GET /api/destinations?q=&region=&tag=&maxDaily=&sort=
 const listDestinations = asyncHandler(async (req, res) => {
@@ -16,19 +17,26 @@ const listDestinations = asyncHandler(async (req, res) => {
   if (q) filter.$text = { $search: q };
   if (region) filter.region = region;
   if (tag) filter.tags = tag;
-  if (maxDaily) filter[`dailyCost.${budgetLevel}`] = { $lte: Number(maxDaily) };
-
   const sortMap = {
     popular: { popularity: -1 },
     rating: { rating: -1 },
-    cheapest: { [`dailyCost.${budgetLevel}`]: 1 },
+    cheapest: { popularity: -1 },
     name: { name: 1 },
   };
 
-  let query = Destination.find(filter).sort(sortMap[sort] || sortMap.popular).limit(Number(limit));
+  const resultLimit = Math.max(1, Number(limit) || 1000);
+  let query = Destination.find(filter).sort(sortMap[sort] || sortMap.popular);
   if (q) query = query.select({ score: { $meta: 'textScore' } }).sort({ score: { $meta: 'textScore' } });
+  if (!maxDaily && sort !== 'cheapest') query = query.limit(resultLimit);
 
-  const destinations = await query.lean();
+  let destinations = (await query.lean()).map(withBudgetCosts);
+  if (maxDaily) {
+    destinations = destinations.filter((destination) => destination.dailyCost?.[budgetLevel] <= Number(maxDaily));
+  }
+  if (sort === 'cheapest') {
+    destinations.sort((a, b) => (a.dailyCost?.[budgetLevel] || 0) - (b.dailyCost?.[budgetLevel] || 0));
+  }
+  if (maxDaily || sort === 'cheapest') destinations = destinations.slice(0, resultLimit);
 
   // If we know who's asking, attach a match score so the UI can badge cards
   const withScores = req.user
@@ -62,7 +70,7 @@ const recommended = asyncHandler(async (req, res) => {
     limit: Number(req.query.limit) || 6,
   });
 
-  res.json({ month, destinations: results });
+  res.json({ month, destinations: results.map(withBudgetCosts) });
 });
 
 // GET /api/destinations/:idOrSlug
@@ -70,8 +78,9 @@ const getDestination = asyncHandler(async (req, res) => {
   const { idOrSlug } = req.params;
   const isId = /^[a-f\d]{24}$/i.test(idOrSlug);
 
-  const destination = await Destination.findOne(isId ? { _id: idOrSlug } : { slug: idOrSlug }).lean();
-  if (!destination) throw new ApiError(404, "We don't have that destination (yet)");
+  const destinationRecord = await Destination.findOne(isId ? { _id: idOrSlug } : { slug: idOrSlug }).lean();
+  if (!destinationRecord) throw new ApiError(404, "We don't have that destination (yet)");
+  const destination = withBudgetCosts(destinationRecord);
 
   const activities = await Activity.find({ destination: destination._id }).sort({ rating: -1 }).lean();
 

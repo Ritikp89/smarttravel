@@ -23,6 +23,13 @@ const inferRegion = (country) => {
   return 'Asia';
 };
 
+const isValidPlace = (place) => {
+  if (place?.lat == null || place?.lng == null || String(place.lat).trim() === '' || String(place.lng).trim() === '') return false;
+  const lat = Number(place?.lat);
+  const lng = Number(place?.lng);
+  return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+};
+
 const ownTrip = async (id, userId) => {
   const trip = await Trip.findOne({ _id: id, user: userId }).populate('destination');
   if (!trip) throw new ApiError(404, "Couldn't find that trip");
@@ -61,27 +68,45 @@ const listTrips = asyncHandler(async (req, res) => {
 
 // POST /api/trips
 const createTrip = asyncHandler(async (req, res) => {
-  const { destination, destinationName, destinationPlace, startDate, endDate, travelers, budgetLevel, pace, interests, title, notes } = req.body;
+  const { destination, destinationName, destinationPlace, startDate, endDate, travelers, budgetLevel, pace, interests, title, notes, originCity } = req.body;
+  const prefs = req.user.preferences || {};
+  const tripOriginCity = (typeof originCity === 'string' ? originCity : '').trim() || prefs.homeCity?.trim() || '';
+  if (!tripOriginCity) throw new ApiError(400, 'Enter the city this trip departs from to show its flights');
 
   let dest = null;
   if (typeof destination === 'string' && /^[a-f\d]{24}$/i.test(destination.trim())) {
     dest = await Destination.findById(destination.trim());
   }
 
-  if (!dest && destinationName) {
-    const placeName = destinationPlace?.label || destinationName;
-    let place = destinationPlace;
-    if (!place) {
+  const typedPlaceName = typeof destinationName === 'string' ? destinationName.trim() : '';
+  if (!dest && (typedPlaceName || destinationPlace)) {
+    const searchName = typedPlaceName || (typeof destinationPlace?.label === 'string' ? destinationPlace.label.trim() : '');
+    let place = isValidPlace(destinationPlace)
+      ? {
+          label: typeof destinationPlace.label === 'string' ? destinationPlace.label.trim() : searchName,
+          lat: Number(destinationPlace.lat),
+          lng: Number(destinationPlace.lng),
+          city: typeof destinationPlace.city === 'string' ? destinationPlace.city.trim() : '',
+          country: typeof destinationPlace.country === 'string' ? destinationPlace.country.trim() : '',
+        }
+      : null;
+    if (!place && searchName) {
       try {
-        const matches = await geocode(destinationName);
-        place = matches[0];
+        const matches = await geocode(searchName);
+        place = matches.find(isValidPlace) || null;
       } catch (err) {
         place = null;
       }
     }
 
-    const name = place?.city || destinationName.trim();
-    const country = place?.country || 'Worldwide';
+    if (!place) {
+      throw new ApiError(400, 'We could not locate that place. Select a search result or try a nearby city, landmark, or address.');
+    }
+
+    const placeName = place.label || searchName || place.city;
+    const name = place.city || placeName?.split(',')[0].trim();
+    if (!name) throw new ApiError(400, 'Select a named place from the location suggestions.');
+    const country = place.country || 'Worldwide';
     const slugBase = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -100,9 +125,7 @@ const createTrip = asyncHandler(async (req, res) => {
       description: `Custom destination: ${placeName}`,
       tags: [],
       image: `https://loremflickr.com/1200/800/${encodeURIComponent(name)},${encodeURIComponent(country)},travel?lock=${encodeURIComponent(slug)}`,
-      coordinates: place?.lat != null && place?.lng != null
-        ? { lat: place.lat, lng: place.lng }
-        : { lat: 0, lng: 0 },
+      coordinates: { lat: place.lat, lng: place.lng },
       dailyCost: { budget: 80, mid: 150, luxury: 300 },
       currency: 'USD',
       popularity: 40,
@@ -112,10 +135,10 @@ const createTrip = asyncHandler(async (req, res) => {
 
   if (!dest) throw new ApiError(400, 'Pick or type a destination first');
 
-  const prefs = req.user.preferences || {};
   const trip = await Trip.create({
     user: req.user._id,
     destination: dest._id,
+    originCity: tripOriginCity,
     title: title || `${dest.name} trip`,
     startDate,
     endDate,
@@ -153,6 +176,11 @@ const updateTrip = asyncHandler(async (req, res) => {
   allowed.forEach((k) => {
     if (req.body[k] !== undefined) trip[k] = req.body[k];
   });
+  if (req.body.originCity !== undefined) {
+    const originCity = typeof req.body.originCity === 'string' ? req.body.originCity.trim() : '';
+    if (!originCity) throw new ApiError(400, 'Enter the city this trip departs from to show its flights');
+    trip.originCity = originCity;
+  }
   if (matchingInvalidated) trip.matchingEnabled = false;
   await trip.save();
 

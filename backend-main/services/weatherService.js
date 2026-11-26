@@ -40,6 +40,7 @@ const getForecast = async ({ lat, lng }, days = 7) => {
 
   const result = {
     timezone: data.timezone,
+    updatedAt: new Date().toISOString(),
     current: {
       temp: Math.round(data.current.temperature_2m),
       humidity: data.current.relative_humidity_2m,

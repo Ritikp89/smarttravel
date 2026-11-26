@@ -41,7 +41,7 @@ export default function GroupSplit() {
   const [saving, setSaving] = useState(false)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState(user?.preferences?.currency || 'INR')
   const [splitMode, setSplitMode] = useState('equal')
   const [selectedIds, setSelectedIds] = useState([])
   const [customAmounts, setCustomAmounts] = useState({})
@@ -50,7 +50,7 @@ export default function GroupSplit() {
   const applyResult = useCallback((result) => {
     setData(result)
     setSelectedIds(result.participants.map((person) => person._id))
-    setCurrency(result.currency || 'USD')
+    setCurrency(result.currency || 'INR')
     setLoadError(null)
     setLoading(false)
   }, [])

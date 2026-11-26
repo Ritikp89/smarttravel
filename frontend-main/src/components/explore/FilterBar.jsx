@@ -1,9 +1,10 @@
 import { Search, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useLanguage } from '../../context/LanguageContext'
 
 const REGIONS = ['Europe', 'Asia', 'North America', 'South America', 'Africa', 'Oceania', 'Middle East']
 
-export default function FilterBar({ filters, tags, onChange }) {
+export default function FilterBar({ filters, tags, onChange, onSearchWorldwide, worldwideLoading, isAuthed }) {
   const { t } = useLanguage()
   const set = (patch) => onChange({ ...filters, ...patch })
   const active = filters.q || filters.region || filters.tag
@@ -15,11 +16,31 @@ export default function FilterBar({ filters, tags, onChange }) {
           <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone" />
           <input
             className="input !pl-10"
-            placeholder={t("Search a city, country, or vibe - 'wine', 'temples', 'surf'…")}
+            placeholder={t('Search a city, region, country, or landmark worldwide')}
             value={filters.q}
             onChange={(e) => set({ q: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                onSearchWorldwide?.()
+              }
+            }}
           />
         </div>
+        {isAuthed ? (
+          <button
+            type="button"
+            onClick={onSearchWorldwide}
+            disabled={filters.q.trim().length < 2 || worldwideLoading}
+            className="btn-secondary shrink-0"
+          >
+            <Search size={14} /> {worldwideLoading ? t('Searching…') : t('Search worldwide')}
+          </button>
+        ) : (
+          <Link to="/login" state={{ from: `/explore?q=${encodeURIComponent(filters.q)}` }} className="btn-secondary shrink-0">
+            {t('Log in to search worldwide')}
+          </Link>
+        )}
         <select className="input md:w-44" value={filters.region} onChange={(e) => set({ region: e.target.value })}>
           <option value="">{t('Anywhere')}</option>
           {REGIONS.map((r) => (

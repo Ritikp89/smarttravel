@@ -11,7 +11,12 @@ const registerServiceWorker = () => {
   navigator.serviceWorker.register('/sw.js')
     .catch((error) => console.error('Offline app shell registration failed:', error))
 }
-if (document.readyState === 'complete') registerServiceWorker()
+
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistration()
+    .then((registration) => registration?.unregister())
+    .catch((error) => console.error('Development service worker cleanup failed:', error))
+} else if (document.readyState === 'complete') registerServiceWorker()
 else window.addEventListener('load', registerServiceWorker, { once: true })
 
 createRoot(document.getElementById('root')).render(

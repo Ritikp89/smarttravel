@@ -49,9 +49,9 @@ const updateMe = asyncHandler(async (req, res) => {
 
   if (name !== undefined) user.name = name;
   if (preferences) {
-    const previousCurrency = user.preferences?.currency || 'USD';
+    const previousCurrency = user.preferences?.currency || 'INR';
     user.preferences = { ...user.preferences.toObject(), ...preferences };
-    const selectedCurrency = user.preferences.currency || 'USD';
+    const selectedCurrency = user.preferences.currency || 'INR';
     if (selectedCurrency !== previousCurrency) {
       const budgets = await Budget.find({ user: user._id });
       for (const budget of budgets) {

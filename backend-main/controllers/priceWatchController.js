@@ -30,7 +30,7 @@ const selectedCurrency = async (body, user, trip) => {
     return currency;
   }
   const budget = await Budget.findOne({ trip: trip._id }).select('currency').lean();
-  return normalizeCurrency(budget?.currency || user.preferences?.currency || 'USD');
+  return normalizeCurrency(budget?.currency || user.preferences?.currency || 'INR');
 };
 
 const validateBookingUrl = (value) => {

@@ -31,14 +31,14 @@ export default function PriceWatch() {
   const [bookingUrl, setBookingUrl] = useState('')
   const [bookedPrice, setBookedPrice] = useState('')
   const [currentPrice, setCurrentPrice] = useState('')
-  const [currency, setCurrency] = useState('USD')
+  const [currency, setCurrency] = useState(user?.preferences?.currency || 'INR')
   const [checkingId, setCheckingId] = useState('')
   const [priceDrafts, setPriceDrafts] = useState({})
   const [confirmDelete, setConfirmDelete] = useState('')
 
   const applyResult = useCallback((result) => {
     setData(result)
-    setCurrency(result.currency || 'USD')
+    setCurrency(result.currency || 'INR')
     setLoadError(null)
     setLoading(false)
   }, [])

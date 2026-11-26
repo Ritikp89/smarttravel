@@ -25,6 +25,30 @@ const convertIfNeeded = (amount, fromCurrency, toCurrency) =>
     ? Number(amount)
     : convertAmount(amount, fromCurrency, toCurrency);
 
+const isFixedBudgetLine = (line) =>
+  line.source !== 'estimated' ||
+  (line.category === 'activities' && /\bplanned activities$/.test(line.label || ''));
+
+const assertRealisticCeiling = (limit, lines, contingencyPct, currency) => {
+  if (limit == null) return;
+
+  const multiplier = 1 + contingencyPct / 100;
+  const estimatedTotal = Math.ceil(
+    lines.reduce((sum, line) => sum + (Number(line.amount) || 0), 0) * multiplier
+  );
+  const fixedTotal = Math.ceil(lines
+    .filter(isFixedBudgetLine)
+    .reduce((sum, line) => sum + (Number(line.amount) || 0), 0) * multiplier);
+  const minimum = Math.max(estimatedTotal, fixedTotal);
+
+  if (limit < minimum) {
+    throw new ApiError(
+      400,
+      `Sorry, your ceiling must cover the realistic trip estimate. Please raise it to at least ${minimum} ${currency}.`
+    );
+  }
+};
+
 const manualLinesForCurrency = (lines, fromCurrency, toCurrency) =>
   lines
     .filter((line) => line.source === 'manual')
@@ -33,12 +57,13 @@ const manualLinesForCurrency = (lines, fromCurrency, toCurrency) =>
       return { ...value, amount: convertIfNeeded(value.amount, fromCurrency, toCurrency) };
     });
 
-const estimateLinesForCurrency = async ({ trip, itinerary, manualLines, currency }) => {
+const estimateLinesForCurrency = async ({ trip, itinerary, manualLines, currency, originCity }) => {
   const lines = await estimateBudget({
     trip,
     destination: trip.destination,
     itinerary,
     existingLines: manualLines,
+    originCity,
   });
 
   return lines.map((line) => ({
@@ -63,10 +88,16 @@ const estimate = asyncHandler(async (req, res) => {
 
   const previousCurrency = normalizeCurrency(existing?.currency || 'USD');
   const targetCurrency = normalizeCurrency(
-    req.body.currency || req.user.preferences?.currency || existing?.currency || 'USD'
+    req.body.currency || req.user.preferences?.currency || existing?.currency || 'INR'
   );
   const manualLines = manualLinesForCurrency(existing?.lines || [], previousCurrency, targetCurrency);
-  const lines = await estimateLinesForCurrency({ trip, itinerary, manualLines, currency: targetCurrency });
+  const lines = await estimateLinesForCurrency({
+    trip,
+    itinerary,
+    manualLines,
+    currency: targetCurrency,
+    originCity: trip.originCity?.trim() || req.user.preferences?.homeCity?.trim() || '',
+  });
   const budget = existing || new Budget({ trip: trip._id, user: req.user._id });
   let limit;
   if (req.body.limit !== undefined) {
@@ -77,6 +108,8 @@ const estimate = asyncHandler(async (req, res) => {
   const contingencyPct = req.body.contingencyPct === undefined
     ? budget.contingencyPct
     : parseContingency(req.body.contingencyPct);
+
+  assertRealisticCeiling(limit, lines, contingencyPct, targetCurrency);
 
   budget.lines = fitBudgetToLimit(lines, limit, contingencyPct);
   budget.currency = targetCurrency;
@@ -123,7 +156,13 @@ const updateBudget = asyncHandler(async (req, res) => {
   const targetContingency = contingencyPct === undefined ? budget.contingencyPct : parseContingency(contingencyPct);
   const itinerary = await Itinerary.findOne({ trip: trip._id }).lean();
   const manualLines = manualLinesForCurrency(budget.lines, previousCurrency, targetCurrency);
-  const updatedLines = await estimateLinesForCurrency({ trip, itinerary, manualLines, currency: targetCurrency });
+  const updatedLines = await estimateLinesForCurrency({
+    trip,
+    itinerary,
+    manualLines,
+    currency: targetCurrency,
+    originCity: trip.originCity?.trim() || req.user.preferences?.homeCity?.trim() || '',
+  });
 
   if (Array.isArray(lines)) {
     lines.forEach((incoming) => {
@@ -136,6 +175,10 @@ const updateBudget = asyncHandler(async (req, res) => {
       if (incoming.label !== undefined) line.label = incoming.label;
       line.source = 'manual';
     });
+  }
+
+  if (targetLimit != null) {
+    assertRealisticCeiling(targetLimit, updatedLines, targetContingency, targetCurrency);
   }
 
   budget.lines = fitBudgetToLimit(updatedLines, targetLimit, targetContingency);
@@ -168,10 +211,12 @@ const resetLine = asyncHandler(async (req, res) => {
     itinerary,
     manualLines,
     currency: normalizeCurrency(budget.currency),
+    originCity: trip.originCity?.trim() || req.user.preferences?.homeCity?.trim() || '',
   });
   const replacement = fresh.find((l) => l.category === req.params.category);
 
   if (!replacement) throw new ApiError(404, 'Unknown budget line');
+  assertRealisticCeiling(budget.limit, fresh, budget.contingencyPct, budget.currency);
   budget.lines = fitBudgetToLimit(fresh, budget.limit, budget.contingencyPct);
   budget.recalculate(trip.travelers, trip.days);
   budget.estimatedAt = new Date();

@@ -181,7 +181,7 @@ export default function BudgetPanel({ trip, budget, insights, onChange }) {
               <button onClick={saveLimit} disabled={busy} className="btn-secondary !py-1.5">{t('Set')}</button>
             </div>
             <p className="mt-2 text-[11px] text-stone">
-              {t('Estimated categories rebalance to your ceiling. Manual costs and planned activity prices stay fixed.')}
+              {t('Set a ceiling at or above the realistic estimate. It includes contingency, manual costs, and planned activity prices.')}
             </p>
             {budget.limit != null && (
               <div className="mt-2">
